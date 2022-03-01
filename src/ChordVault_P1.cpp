@@ -3,7 +3,7 @@
 
 using namespace aetrion;
 
-#define VALUT_SIZE 16
+#define VAULT_SIZE 16
 #define CHANNEL_COUNT 8
 
 struct ChordVault_P1 : Module {
@@ -46,15 +46,17 @@ struct ChordVault_P1 : Module {
 	int seqLength;
 	bool firstProcess;
 	bool clockHigh;
+	bool gatesHigh;
 	bool recordPlayBtnDown;
 	bool polyModeBtnDown;
+	bool partialPlayClock; //True for the first (partial) clock after going into play mode
 	int stepSelect_prev;
 	int stepSelect_previewGateTimer;
 
 	//Persisted
 
-	float vault_cv [VALUT_SIZE][CHANNEL_COUNT];
-	bool vault_gate [VALUT_SIZE][CHANNEL_COUNT];
+	float vault_cv [VAULT_SIZE][CHANNEL_COUNT];
+	bool vault_gate [VAULT_SIZE][CHANNEL_COUNT];
 	int vault_pos;
 	bool recording;
 	bool excludeBase;
@@ -63,10 +65,10 @@ struct ChordVault_P1 : Module {
 	ChordVault_P1() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
 		configButton(STEP_LENGTH_BTN_PARAM, "");
-		configParam(STEP_SELECT_KNOB_PARAM, 1.f, 16.f, 4.f, "Step Select");
+		configParam(STEP_SELECT_KNOB_PARAM, 0.f, 15.f, 3.f, "Step Select", " step", 0, 1, 1);
 		configButton(COPY_PASTE_BTN_PARAM, "");
 		configButton(RECORD_PLAY_BTN_PARAM, "Record/Play Toggle");
-		configParam(LENGTH_KNOB_PARAM, 1.f, 16.f, 4.f, "Step Length");
+		configParam(LENGTH_KNOB_PARAM, 1.f, 16.f, 4.f, "Step Length", " steps");
 		configButton(RESET_BTN_PARAM, "");
 		configButton(POLY_MODE_BTN_PARAM, "Poly Incldues Base?");
 
@@ -101,6 +103,7 @@ struct ChordVault_P1 : Module {
 		seqLength = 4;
 		firstProcess = true;		
 		clockHigh = false;
+		gatesHigh = false;
 		recordPlayBtnDown = false;
 		polyModeBtnDown = false;
 		stepSelect_prev = 0;
@@ -146,10 +149,16 @@ struct ChordVault_P1 : Module {
 				recording = !recording;
 				lights[RECORD_LIGHT_LIGHT].setBrightness(recording ? 1.f : 0.f);
 				lights[PLAY_LIGHT_LIGHT].setBrightness(recording ? 0.f : 1.f);
+
 				if(recording){
-					//When entering record mode reset play position
+					//When changing record/play mode reset play position
 					vault_pos = 0;
+					params[STEP_SELECT_KNOB_PARAM].setValue(vault_pos);
 				}else{
+					vault_pos = 0;
+					params[STEP_SELECT_KNOB_PARAM].setValue(vault_pos);
+					partialPlayClock = true;
+
 					//If done recording sort the current CVs
 					sortCurrentCVs();
 				}
@@ -172,9 +181,6 @@ struct ChordVault_P1 : Module {
 		seqLength = (int)params[LENGTH_KNOB_PARAM].getValue();
 
 		int stepSelect = (int)params[STEP_SELECT_KNOB_PARAM].getValue();
-		//Wrap back around to correct for 0 indexing vs 1 indexing
-		//Do this before the comparison so turnning the knob above the seqLimit doesn't keep triggering things
-		if(stepSelect >= seqLength) stepSelect = 0; 
 		
 		if(stepSelect_prev != stepSelect){
 			stepSelect_prev = stepSelect;
@@ -186,33 +192,53 @@ struct ChordVault_P1 : Module {
 
 		//Clock Detection
 		{
-			float usedClock = 0;
-			if(recording){
-				//When recording, use the max of all input gate values
-				//This means any gate down will cause a record and all gates must go low for the next record to happen
-				for(int ci = 0; ci < CHANNEL_COUNT; ci++){
-					usedClock = std::max(usedClock,inputs[GATE_IN_INPUT].getVoltage(ci));
-				}
-			}else{
-				usedClock = inputs[CLOCK_INPUT].getVoltage();
-			}
-
-			if(clockHigh && usedClock <= 0.1f){
+			float clockValue = inputs[CLOCK_INPUT].getVoltage(); 
+			if(clockHigh && clockValue <= 0.1f){
 				clockHigh = false;
-			}else if(!clockHigh && usedClock >= 2.0f){
+			}else if(!clockHigh && clockValue >= 2.0f){
 				clockHigh = true;
 
-				//Sort previous CVs lowest to highest
-				//We have to do extra work here to only sort CVs with high gates
-				if(recording){
-					sortCurrentCVs();
+				//If not recording, the advance the step here (on clock high)
+				if(!recording){
+					if(partialPlayClock){
+						//Absorb the partical clock and don't advance the sequence
+						partialPlayClock = false;
+					}else{
+						vault_pos++;
+						if(vault_pos >= seqLength) vault_pos = 0;
+						params[STEP_SELECT_KNOB_PARAM].setValue(vault_pos);
+					}
 				}
+			}
+		}
 
-				vault_pos++;
-				if(vault_pos >= seqLength) vault_pos = 0;
-				
-				//Clear next gates if recording started
+		//Gate Detection
+		{
+			//When recording, use the max of all input gate values
+			//This means any gate down will cause a record and all gates must go low for the next record to happen
+			float maxGateValue = 0;
+			for(int ci = 0; ci < CHANNEL_COUNT; ci++){
+				maxGateValue = std::max(maxGateValue,inputs[GATE_IN_INPUT].getVoltage(ci));
+			}
+			if(gatesHigh && maxGateValue <= 0.1f){
+				gatesHigh = false;
+
+				//In record mode, advance step on gates going low
 				if(recording){
+					//Sort previous CVs lowest to highest
+					//We have to do extra work here to only sort CVs with high gates	
+					sortCurrentCVs();
+
+					vault_pos++;
+					if(vault_pos >= VAULT_SIZE) vault_pos = 0;
+					params[STEP_SELECT_KNOB_PARAM].setValue(vault_pos);
+				}
+			}else if(!gatesHigh && maxGateValue >= 2.0f){
+				gatesHigh = true;
+
+				if(recording){
+					//On Gate high on this step, first clear all the gate values
+					//Clear next gates
 					for(int ci = 0; ci < CHANNEL_COUNT; ci++){
 						vault_gate[vault_pos][ci] = false;
 					}
@@ -230,22 +256,43 @@ struct ChordVault_P1 : Module {
 		//Input/Output
 		{
 			for(int ci = 0; ci < CHANNEL_COUNT; ci++){
-				if(recording && inputs[GATE_IN_INPUT].getVoltage(ci) >= 2.0f){
-					vault_cv[vault_pos][ci] = inputs[CV_IN_INPUT].getVoltage(ci);
-					vault_gate[vault_pos][ci] = true;
-				}
+				if(recording){
+					float inCV = inputs[CV_IN_INPUT].getVoltage(ci);
+					float inGate = inputs[GATE_IN_INPUT].getVoltage(ci);
+					if(inGate >= 2.0f){
+						vault_cv[vault_pos][ci] = inCV;
+						vault_gate[vault_pos][ci] = true;
+					}
+					outputs[CV_OUT_OUTPUT].setVoltage(inCV,ci);
+					outputs[GATE_OUT_OUTPUT].setVoltage(inGate,ci);
+				}else if(
+					!partialPlayClock //Don't play anything on the first partial clock 
+					){
+					int channel = ci;
+					if(excludeBase){
+						if(channel == 0) continue;
+						channel--;
+					}
 
-				int channel = ci;
-				if(excludeBase){
-					if(channel == 0) continue;
-					channel--;
-				}
+					//Output Gate Value
+					bool gateValue = vault_gate[vault_pos][ci];
+					outputs[GATE_OUT_OUTPUT].setVoltage((outGateHigh && gateValue) ? 10.f : 0.f,channel);
 
-				outputs[CV_OUT_OUTPUT].setVoltage(vault_cv[vault_pos][ci],channel);
-				outputs[GATE_OUT_OUTPUT].setVoltage((outGateHigh && vault_gate[vault_pos][ci]) ? 10.f : 0.f,channel);
+					//Output CV Value
+					//This check makes it so steps without a gate don't change CV and instead hold their previous value
+					if(gateValue){
+						outputs[CV_OUT_OUTPUT].setVoltage(vault_cv[vault_pos][ci],channel);
+					}
+					
+				}				
 			}
-			//Since CVs are sorted we know the first one is the lowest one
-			outputs[BASE_OUT_OUTPUT].setVoltage(vault_cv[vault_pos][0]);
+			if(!recording
+				&& !partialPlayClock //Don't play anything on the first partial clock 
+				&& vault_gate[vault_pos][0] //This check makes it so steps without a gate don't change CV and instead hold their previous value
+				){
+				//Since CVs are sorted we know the first one is the lowest one
+				outputs[BASE_OUT_OUTPUT].setVoltage(vault_cv[vault_pos][0]);
+			}
 
 		}
 	}
@@ -261,7 +308,7 @@ struct ChordVault_P1 : Module {
 				activeCV_count++;
 			}
 		}
-		std::sort(activeCVs, activeCVs + activeCV_count, std::greater<float>());
+		std::sort(activeCVs, activeCVs + activeCV_count, std::less<float>());
 		activeCV_count = 0;
 		for(int ci = 0; ci < CHANNEL_COUNT; ci++){
 			if(gates[ci]){
@@ -282,12 +329,15 @@ struct CurStepDisplay : DigitalDisplay {
 	int steps_prev = -1;
 	void step() override {
 		if (module) {
-			//Note here we are not adding 1, so we are effectively showing the seq number from the last step, which is the step current playing
-			int steps = module->vault_pos;
-			if(steps == 0) steps = module->seqLength;
+			int steps = module->partialPlayClock ? -1 : module->vault_pos;
 			if (steps_prev != steps){
 				steps_prev = steps;
-				text = string::f("%d", steps);	
+				if(steps == -1){
+					text = "";
+				}else{
+					text = string::f("%d", steps + 1);	
+				}
+				this->fgColor = steps < module->seqLength ? SCHEME_WHITE : SCHEME_RED_CUSTOM;
 			}
 		}else{
 			text = string::f("4");	

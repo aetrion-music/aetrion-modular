@@ -10,6 +10,8 @@ extern Plugin *pluginInstance;
 
 namespace  aetrion {
 
+static const NVGcolor SCHEME_RED_CUSTOM = nvgRGB(0xf6, 0x8f, 0xb2);
+
 //LargeKnob
 struct LargeKnob : RoundKnob {
 	LargeKnob();
@@ -43,7 +45,7 @@ struct DigitalDisplay : Widget {
 	std::string bgText;
 	std::string text;
 	float fontSize;
-	NVGcolor bgColor = nvgRGB(0x0, 0x0, 0x0);
+
 	NVGcolor fgColor = SCHEME_WHITE;
 	Vec textPos;
 
@@ -59,16 +61,16 @@ struct DigitalDisplay : Widget {
 	}
 
 	void draw(const DrawArgs& args) override {
-		// Background
+		//Background
 		nvgBeginPath(args.vg);
-		nvgRoundedRect(args.vg, 0, 0, box.size.x, box.size.y, 2);
-		nvgFillColor(args.vg, nvgRGB(0x19, 0x19, 0x19));
+		nvgRect(args.vg, -1, -1, box.size.x+2, box.size.y+2);
+		nvgFillColor(args.vg, nvgRGB(0x06, 0x0e, 0x2c)); //Very dark blue
 		nvgFill(args.vg);
 
 		prepareFont(args);
 
 		// Background text
-		nvgFillColor(args.vg, bgColor);
+		nvgFillColor(args.vg, nvgRGB(0x0f, 0x26, 0x74));//Slightly less dark dark blue
 		nvgText(args.vg, textPos.x, textPos.y, bgText.c_str(), NULL);
 	}
 
