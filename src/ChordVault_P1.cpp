@@ -319,34 +319,33 @@ struct ChordVault_P1 : Module {
 	}
 };
 
-struct CurStepDisplay : DigitalDisplay {
-	CurStepDisplay() {
-		fontPath = asset::system("res/fonts/DSEG7ClassicMini-BoldItalic.ttf");
-		bgText = "18";
-		fontSize = 8;
-	}
-	ChordVault_P1* module;
-	int steps_prev = -1;
-	void step() override {
-		if (module) {
-			int steps = module->partialPlayClock ? -1 : module->vault_pos;
-			if (steps_prev != steps){
-				steps_prev = steps;
-				if(steps == -1){
-					text = "";
-				}else{
-					text = string::f("%d", steps + 1);	
-				}
-				this->fgColor = steps < module->seqLength ? SCHEME_WHITE : SCHEME_RED_CUSTOM;
-			}
-		}else{
-			text = string::f("4");	
-		}		
-	}
-};
-
-
 struct ChordVault_P1Widget : ModuleWidget {
+	struct CurStepDisplay : DigitalDisplay {
+		CurStepDisplay() {
+			fontPath = asset::system("res/fonts/DSEG7ClassicMini-BoldItalic.ttf");
+			bgText = "18";
+			fontSize = 8;
+		}
+		ChordVault_P1* module;
+		int steps_prev = -1;
+		void step() override {
+			if (module) {
+				int steps = module->partialPlayClock ? -1 : module->vault_pos;
+				if (steps_prev != steps){
+					steps_prev = steps;
+					if(steps == -1){
+						text = "";
+					}else{
+						text = string::f("%d", steps + 1);	
+					}
+					this->fgColor = steps < module->seqLength ? SCHEME_WHITE : SCHEME_RED_CUSTOM;
+				}
+			}else{
+				text = string::f("4");	
+			}		
+		}
+	};
+
 	ChordVault_P1Widget(ChordVault_P1* module) {
 		setModule(module);
 		setPanel(createPanel(asset::plugin(pluginInstance, "res/ChordVault_P1.svg")));

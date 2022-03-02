@@ -61,11 +61,11 @@ struct DigitalDisplay : Widget {
 	}
 
 	void draw(const DrawArgs& args) override {
-		//Background
-		nvgBeginPath(args.vg);
-		nvgRect(args.vg, -1, -1, box.size.x+2, box.size.y+2);
-		nvgFillColor(args.vg, nvgRGB(0x06, 0x0e, 0x2c)); //Very dark blue
-		nvgFill(args.vg);
+		// //Background
+		// nvgBeginPath(args.vg);
+		// nvgRect(args.vg, -1, -1, box.size.x+2, box.size.y+2);
+		// nvgFillColor(args.vg, nvgRGB(0x06, 0x0e, 0x2c)); //Very dark blue
+		// nvgFill(args.vg);
 
 		prepareFont(args);
 
@@ -86,5 +86,11 @@ struct DigitalDisplay : Widget {
 	}
 };
 
+struct BlueRedLight : GrayModuleLightWidget {
+	BlueRedLight() {
+		addBaseColor(SCHEME_BLUE);
+		addBaseColor(SCHEME_RED_CUSTOM);
+	}
+};
 
 }

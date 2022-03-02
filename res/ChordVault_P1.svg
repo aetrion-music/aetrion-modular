@@ -780,11 +780,11 @@
      inkscape:window-width="1920"
      showgrid="false"
      inkscape:document-rotation="0"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="layer4"
      inkscape:document-units="mm"
-     inkscape:cy="217.29409"
-     inkscape:cx="-29.476955"
-     inkscape:zoom="1.4142136"
+     inkscape:cy="145.96026"
+     inkscape:cx="24.68984"
+     inkscape:zoom="2.8284272"
      inkscape:pageshadow="2"
      inkscape:pageopacity="0.0"
      borderopacity="1.0"
@@ -1167,25 +1167,6 @@
       </g>
     </g>
     <g
-       transform="matrix(0.16450385,0,0,0.16450385,6.8735065,30.020307)"
-       data-name="Label white"
-       id="g3507"
-       style="stroke-width:1.60837">
-      <text
-         letter-spacing="0.01em"
-         font-family="Segment14"
-         font-size="16px"
-         fill="#ffffff"
-         transform="translate(10,12)"
-         data-name="Label"
-         id="text3505"
-         style="stroke-width:2.58686"><tspan
-           id="tspan3503"
-           y="0"
-           x="-10.4"
-           style="stroke-width:1.60837">4</tspan></text>
-    </g>
-    <g
        style="stroke-width:2.58686"
        id="g3513"
        data-name="Pfad 11"
@@ -1202,25 +1183,6 @@
          stroke="none"
          fill="rgba(168,56,96,0.15)"
          id="path3511" />
-    </g>
-    <g
-       style="stroke-width:1.60837"
-       id="g3537"
-       data-name="Label white"
-       transform="matrix(0.16450385,0,0,0.16450385,4.8951831,62.581545)">
-      <text
-         style="stroke-width:2.58686"
-         id="text3535"
-         data-name="Label"
-         transform="translate(32,12)"
-         fill="#ffffff"
-         font-size="16px"
-         font-family="Segment14"
-         letter-spacing="0.01em"><tspan
-           style="stroke-width:1.60837"
-           x="-31.52"
-           y="0"
-           id="tspan3533">FWD</tspan></text>
     </g>
     <g
        transform="matrix(0.16450385,0,0,0.16450385,7.8605296,15.179264)"
@@ -1554,15 +1516,6 @@
          style="text-align:center;text-anchor:middle;stroke-width:0.264583"
          id="path2881" />
     </g>
-    <rect
-       style="font-variation-settings:normal;opacity:1;vector-effect:none;fill:#ffff00;fill-opacity:0.501961;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;paint-order:normal;stop-color:#000000;stop-opacity:1"
-       id="step_display"
-       width="5.2255206"
-       height="2.9765625"
-       x="5.1263022"
-       y="29.633331"
-       rx="0"
-       ry="0" />
     <g
        id="g2980"
        transform="translate(10.476966,-31.711529)">
@@ -1588,8 +1541,7 @@
      style="display:none"
      inkscape:label="Component Viz"
      id="layer4"
-     inkscape:groupmode="layer"
-     sodipodi:insensitive="true">
+     inkscape:groupmode="layer">
     <g
        transform="matrix(0.16450385,0,0,0.16450385,10.986102,24.098168)"
        id="g3501"
@@ -2700,6 +2652,44 @@
          transform="translate(-325.876,0.524)"
          fill="#6e6e6e" />
     </g>
+    <g
+       transform="matrix(0.16450385,0,0,0.16450385,6.8735064,30.020308)"
+       data-name="Label white"
+       id="g3507"
+       style="display:inline;stroke-width:1.60837">
+      <text
+         letter-spacing="0.01em"
+         font-family="Segment14"
+         font-size="16px"
+         fill="#ffffff"
+         transform="translate(10,12)"
+         data-name="Label"
+         id="text3505"
+         style="stroke-width:2.58686"><tspan
+           id="tspan3503"
+           y="0"
+           x="-10.4"
+           style="stroke-width:1.60837">4</tspan></text>
+    </g>
+    <g
+       style="display:inline;stroke-width:1.60837"
+       id="g3537"
+       data-name="Label white"
+       transform="matrix(0.16450385,0,0,0.16450385,4.895183,62.581544)">
+      <text
+         style="stroke-width:2.58686"
+         id="text3535"
+         data-name="Label"
+         transform="translate(32,12)"
+         fill="#ffffff"
+         font-size="16px"
+         font-family="Segment14"
+         letter-spacing="0.01em"><tspan
+           style="stroke-width:1.60837"
+           x="-31.52"
+           y="0"
+           id="tspan3533">FWD</tspan></text>
+    </g>
   </g>
   <g
      style="display:none"
@@ -2838,5 +2828,14 @@
        cx="17.895264"
        id="cv_in"
        style="font-variation-settings:normal;display:inline;vector-effect:none;fill:#00ff00;fill-opacity:0.501961;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal" />
+    <rect
+       style="display:inline;font-variation-settings:normal;opacity:1;vector-effect:none;fill:#ffff00;fill-opacity:0.501961;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;paint-order:normal;stop-color:#000000;stop-opacity:1"
+       id="step_display"
+       width="5.2255206"
+       height="2.9765625"
+       x="5.1263022"
+       y="29.633331"
+       rx="0"
+       ry="0" />
   </g>
 </svg>
