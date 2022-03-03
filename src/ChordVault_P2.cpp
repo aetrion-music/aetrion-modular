@@ -178,7 +178,7 @@ struct ChordVault_P2 : Module {
 	}
 
 	void dataFromJson(json_t *jobj) override {
-		vault_pos = json_integer_value(json_object_get(jobj, "vault_pos"));
+		setVaultPos(json_integer_value(json_object_get(jobj, "vault_pos")));
 		playMode = (PlayMode)json_integer_value(json_object_get(jobj, "playMode"));
 		channels = json_integer_value(json_object_get(jobj, "channels"));
 		shuffle_index = json_integer_value(json_object_get(jobj, "shuffle_index"));
@@ -223,15 +223,13 @@ struct ChordVault_P2 : Module {
 
 				if(recording){
 					//When changing record/play mode reset play position
-					vault_pos = 0;
-					params[STEP_KNOB_PARAM].setValue(vault_pos);
+					setVaultPos(0);
 				}else{
-					vault_pos = 0;
-					params[STEP_KNOB_PARAM].setValue(vault_pos);
+					setVaultPos(0);
 					partialPlayClock = true;
 
 					//If done recording sort the current CVs
-					sortCurrentCVs();
+					sortAndClearCurrentCVs();
 				}
 			}
 		}
@@ -278,6 +276,9 @@ struct ChordVault_P2 : Module {
 			
 			//When cycling through the steps trigger a fake/preview gate for a quarter second
 			stepSelect_previewGateTimer = args.sampleRate / 4;
+
+			//Clear this to allow for previewing of steps
+			partialPlayClock = false;
 		}		
 
 		//Clock Detection
@@ -293,14 +294,19 @@ struct ChordVault_P2 : Module {
 					if(partialPlayClock){
 						//Absorb the partical clock and don't advance the sequence
 						partialPlayClock = false;
+						setStartingVaultPosition();
 					}else{
 						nextVaultPosition();
+
+						//Stop previewing when when moving to next step
+						stepSelect_previewGateTimer = 0;
 					}
 				}
 			}
 		}
 
 		if(!recording){
+			bool resetEvent = false;
 			//Reset Button
 			{
 				float btnValue = params[RESET_BTN_PARAM].getValue();
@@ -308,7 +314,7 @@ struct ChordVault_P2 : Module {
 					resetBtnDown = false;
 				}else if(!resetBtnDown && btnValue > 0){
 					resetBtnDown = true;
-					vault_pos = 0;
+					resetEvent = true;
 				}
 			}
 
@@ -319,8 +325,16 @@ struct ChordVault_P2 : Module {
 					resetTrigHigh = false;
 				}else if(!resetTrigHigh && triggerValue >= 2.0f){
 					resetTrigHigh = true;
-					vault_pos = 0;
+					resetEvent = true;
 				}
+			}
+
+			if(resetEvent){
+				setVaultPos(0);
+				partialPlayClock = true; //set this to true to cause the next gate to play step 1
+
+				//Stop previewing on reset
+				stepSelect_previewGateTimer = 0;				
 			}
 		}
 
@@ -339,11 +353,12 @@ struct ChordVault_P2 : Module {
 				if(recording){
 					//Sort previous CVs lowest to highest
 					//We have to do extra work here to only sort CVs with high gates	
-					sortCurrentCVs();
+					sortAndClearCurrentCVs();
 
-					vault_pos++;
-					if(vault_pos >= VAULT_SIZE) vault_pos = 0;
-					params[STEP_KNOB_PARAM].setValue(vault_pos);
+					setVaultPos((vault_pos + 1) % VAULT_SIZE);
+
+					//Stop previewing when when moving to next step
+					stepSelect_previewGateTimer = 0;
 				}
 			}else if(!gatesHigh && maxGateValue >= 2.0f){
 				gatesHigh = true;
@@ -359,19 +374,22 @@ struct ChordVault_P2 : Module {
 		}
 
 		bool outGateHigh = clockHigh;
+		bool previewGateHigh = false;
 
 		if(stepSelect_previewGateTimer > 0){
 			stepSelect_previewGateTimer --;
 			outGateHigh = true;
+			previewGateHigh = true;
 		}
 
 		if(!recording && playMode == GLIDE){
-			vault_pos = getCV_vault_pos();
+			setVaultPos(getCV_vault_pos());
 		}
 
 		//Input/Output
 		{
 			for(int ci = 0; ci < channels; ci++){
+				bool outputVaultValues = false;
 				if(recording){
 					float inCV = inputs[CV_IN_INPUT].getVoltage(ci);
 					float inGate = inputs[GATE_IN_INPUT].getVoltage(ci);
@@ -379,12 +397,28 @@ struct ChordVault_P2 : Module {
 						vault_cv[vault_pos][ci] = inCV;
 						vault_gate[vault_pos][ci] = true;
 					}
-					outputs[CV_OUT_OUTPUT].setVoltage(inCV,ci);
-					outputs[GATE_OUT_OUTPUT].setVoltage(inGate,ci);
-				}else if(
-					!partialPlayClock //Don't play anything on the first partial clock 
-					){
+					//Since we don't record to the vault until the gates are up we need this extra case here
+					//If the gates are down (before the gates go up) we want to output the values that are form the inputs
+					if(gatesHigh){
+						outputs[CV_OUT_OUTPUT].setVoltage(inCV,ci);
+						outputs[GATE_OUT_OUTPUT].setVoltage(inGate,ci);
+					}else if(previewGateHigh){
+						//Otherwise if we are previewing a note from the knob, we want to play it out
+						outputVaultValues = true;
+					}else{
+						//Otherwise reset the gate, but let the CV retain its previous value
+						outputs[GATE_OUT_OUTPUT].setVoltage(0,ci);
+					}	
+				}else if(partialPlayClock){
+					//Don't play anything on the first partial clock 
+					
+					//But do clear the gates
+					outputs[GATE_OUT_OUTPUT].setVoltage(0,ci);
+				}else{
+					outputVaultValues = true;
+				}
 
+				if(outputVaultValues){
 					//Output Gate Value
 					bool gateValue = vault_gate[vault_pos][ci];
 					outputs[GATE_OUT_OUTPUT].setVoltage((outGateHigh && gateValue) ? 10.f : 0.f,ci);
@@ -392,31 +426,46 @@ struct ChordVault_P2 : Module {
 					//Output CV Value
 					//This check makes it so steps without a gate don't change CV and instead hold their previous value
 					if(gateValue){
-						// if(playMode == GLIDE){
-						// 	float newPos = inputs[STEP_CV_INPUT].getVoltage() / 5.f * seqLength;
-						// 	while(newPos < 0) newPos += seqLength;
-						// 	while(newPos >= seqLength) newPos -= seqLength;
-						// 	int newIdx = std::floor(newPos);
-
-						// 	if(vault_gate[newIdx] && newIdx != vault_pos){
-						// 		//If...   new cv has a gate too and its not the same position
-						// 		//Then... glide from one CV to the other
-						// 		float glideAmt = newPos - vault_pos / (float)(newIdx - vault_pos);
-						// 		float cv1 = vault_cv[vault_pos][ci];
-						// 		float cv2 = vault_cv[newIdx][ci];
-						// 		float finalCV = cv1 * (1-glideAmt) + cv2 * glideAmt;
-						// 		outputs[CV_OUT_OUTPUT].setVoltage(finalCV,ci);
-						// 	}else{
-						// 		//else Just play current gate
-						// 		outputs[CV_OUT_OUTPUT].setVoltage(vault_cv[vault_pos][ci],ci);	
-						// 	}
-						// }else{
-							outputs[CV_OUT_OUTPUT].setVoltage(vault_cv[vault_pos][ci],ci);
-						// }
-					}
-					
-				}				
+						outputs[CV_OUT_OUTPUT].setVoltage(vault_cv[vault_pos][ci],ci);
+					}					
+				}			
 			}
+		}
+	}
+
+	void setVaultPos(int new_pos){
+		if(vault_pos == new_pos) return;
+		vault_pos = new_pos;
+		params[STEP_KNOB_PARAM].setValue(vault_pos);
+		stepSelect_prev = new_pos;
+	}
+
+	void setStartingVaultPosition(){
+		switch(playMode){
+			case SKIP:
+			case PING_PONG:
+			case FORWARD:{
+				setVaultPos(0);
+				}break;
+		
+			case BACKWARD:{
+				setVaultPos(seqLength-1);
+				}break;
+
+			case RANDOM:{
+				nextVaultPosition();
+				}break;
+
+			case GLIDE:
+			case CV:{
+				setVaultPos(getCV_vault_pos());
+				}break;
+
+			case SHUFFLE:{
+				//Set shuffle_index to 0 so the call to nextVaultPosition() creates a new sequence
+				shuffle_index = 0;
+				nextVaultPosition();
+				}break;
 		}
 	}
 
@@ -424,56 +473,56 @@ struct ChordVault_P2 : Module {
 		switch(playMode){
 			//Normal Modes
 			case FORWARD:{
-				vault_pos++;
-				if(vault_pos >= seqLength) vault_pos = 0;
+				setVaultPos(vault_pos+1);
+				if(vault_pos >= seqLength) setVaultPos(0);
 				}break;
 		
 			case BACKWARD:{
-				vault_pos--;
-				if(vault_pos < 0) vault_pos = seqLength-1;
+				setVaultPos(vault_pos-1);
+				if(vault_pos < 0) setVaultPos(seqLength-1);
 				}break;
 
 			case RANDOM:{
 				if(seqLength == 1){
-					vault_pos = 0;
+					setVaultPos(0);
 				}else{
 					//Select a new position that isn't the current one
 					int newPos = (int)std::floor(rack::random::uniform() * (seqLength - 1));
 					if(newPos >= vault_pos) newPos++;
-					vault_pos = newPos;
+					setVaultPos(newPos);
 				}
 				}break;
 
 			case GLIDE:
 			case CV:{
-				vault_pos = getCV_vault_pos();
+				setVaultPos(getCV_vault_pos());
 				}break;
 
 			//Secret Modes
 			case SKIP:{
 				//Chance of skipping a Chord, 20% by default but can be set by the CV_IN_INPUT
 				if(rack::random::uniform() < inputs[STEP_CV_INPUT].getNormalVoltage(2.f) / 10.f){
-					vault_pos+=2;
+					setVaultPos(vault_pos+2);
 				}else{
-					vault_pos++;
+					setVaultPos(vault_pos+1);
 				}
 				while(vault_pos >= seqLength) vault_pos -= seqLength;
 				}break;
 
 			case PING_PONG:{
 				if(seqLength == 1){
-					vault_pos = 0;
+					setVaultPos(0);
 				}else{
 					if(pingPongDir){
-						vault_pos++;
+						setVaultPos(vault_pos+1);
 						if(vault_pos >= seqLength){
-							vault_pos = seqLength-2;
+							setVaultPos(seqLength-2);
 							pingPongDir = false;
 						}
 					}else{
-						vault_pos--;
+						setVaultPos(vault_pos-1);
 						if(vault_pos < 0){
-							vault_pos = 1;
+							setVaultPos(1);
 							pingPongDir = true;
 						}
 					}
@@ -495,11 +544,9 @@ struct ChordVault_P2 : Module {
 				}
 				shuffle_index++;
 				if(shuffle_index >= seqLength) shuffle_index = 0;
-				vault_pos = shuffle_arr[shuffle_index];
+				setVaultPos(shuffle_arr[shuffle_index]);
 				}break;
 		}
-		
-		params[STEP_KNOB_PARAM].setValue(vault_pos);
 	}
 
 	int getCV_vault_pos(){
@@ -523,7 +570,7 @@ struct ChordVault_P2 : Module {
 		lights[PLAY_CV_LIGHT + 1].setBrightness(playMode == GLIDE ? 1 : 0);
 	}
 
-	void sortCurrentCVs(){
+	void sortAndClearCurrentCVs(){
 		float activeCVs [CHANNEL_COUNT];
 		int activeCV_count = 0;
 		auto cvs = vault_cv[vault_pos];
@@ -540,6 +587,11 @@ struct ChordVault_P2 : Module {
 			if(gates[ci]){
 				cvs[ci] = activeCVs[activeCV_count];
 				activeCV_count++;
+			}else{
+				//Clear any CVs on gates that are low
+				//Not strictly nessecary because those values won't get used
+				//But it just keeps the JSON clean
+				cvs[ci] = 0;
 			}
 		}
 	}
