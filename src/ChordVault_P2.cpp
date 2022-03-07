@@ -5,6 +5,7 @@
 using namespace aetrion;
 
 #define VAULT_SIZE 16
+#define VAULT_SIZE_MINUS_1 15
 #define CHANNEL_COUNT 8
 
 	#define PlayMode_MAX 8
@@ -69,6 +70,7 @@ struct ChordVault_P2 : Module {
 
 	//Not Persisted
 
+	int seqStart;
 	int seqLength;
 	bool firstProcess;
 	bool clockHigh;
@@ -82,6 +84,7 @@ struct ChordVault_P2 : Module {
 	int stepSelect_prev;
 	int stepSelect_previewGateTimer;
 	bool pingPongDir;
+	int activeChannels;
 
 	//Persisted
 
@@ -90,6 +93,8 @@ struct ChordVault_P2 : Module {
 	int vault_pos;
 	bool recording;
 	int channels;
+	bool dynamicChannels;
+	bool startStepMode;
 
 	int shuffle_index;
 	int shuffle_arr [VAULT_SIZE];
@@ -128,6 +133,7 @@ struct ChordVault_P2 : Module {
 
 	void initalize(){
 		
+		seqStart = 0;
 		seqLength = 4;
 		firstProcess = true;		
 		clockHigh = false;
@@ -145,7 +151,9 @@ struct ChordVault_P2 : Module {
 		memset(vault_gate, 0, sizeof vault_gate);
 		vault_pos = 0;
 		recording = true;	
-		channels = 8;
+		channels = 5;
+		dynamicChannels = false;
+		startStepMode = false;
 		playMode = (PlayMode)0;	
 		shuffle_index = 0;
 		for(int i = 0; i < VAULT_SIZE; i++) shuffle_arr[i] = i;
@@ -159,6 +167,8 @@ struct ChordVault_P2 : Module {
 		json_object_set_new(jobj, "channels", json_integer(channels));		
 		json_object_set_new(jobj, "shuffle_index", json_integer(shuffle_index));
 		json_object_set_new(jobj, "recording", json_bool(recording));
+		json_object_set_new(jobj, "dynamicChannels", json_bool(dynamicChannels));
+		json_object_set_new(jobj, "startStepMode", json_bool(startStepMode));
 
 		json_t *vaultJ = json_array();
 		json_t *shuffle_arrJ = json_array();
@@ -183,6 +193,8 @@ struct ChordVault_P2 : Module {
 		channels = json_integer_value(json_object_get(jobj, "channels"));
 		shuffle_index = json_integer_value(json_object_get(jobj, "shuffle_index"));
 		recording = json_is_true(json_object_get(jobj, "recording"));
+		dynamicChannels = json_is_true(json_object_get(jobj, "dynamicChannels"));
+		startStepMode = json_is_true(json_object_get(jobj, "startStepMode"));
 
 		json_t *vaultJ = json_object_get(jobj,"vault");
 		json_t *shuffle_arrJ = json_object_get(jobj,"shuffle_arr");
@@ -206,9 +218,8 @@ struct ChordVault_P2 : Module {
 			updatePlayModeLights();
 		}
 
-
-		outputs[CV_OUT_OUTPUT].setChannels(channels);
-		outputs[GATE_OUT_OUTPUT].setChannels(channels);
+		outputs[CV_OUT_OUTPUT].setChannels(activeChannels);
+		outputs[GATE_OUT_OUTPUT].setChannels(activeChannels);
 
 		//Toggle Recrod mode if Button is down
 		{
@@ -222,10 +233,10 @@ struct ChordVault_P2 : Module {
 				lights[PLAY_LIGHT_LIGHT].setBrightness(recording ? 0.f : 1.f);
 
 				if(recording){
-					//When changing record/play mode reset play position
-					setVaultPos(0);
+					//When changing play -> record do NOT change the position
 				}else{
-					setVaultPos(0);
+					//When changing record -> play mode reset play position
+					setVaultPos(seqStart);
 					partialPlayClock = true;
 
 					//If done recording sort the current CVs
@@ -265,21 +276,36 @@ struct ChordVault_P2 : Module {
 			}
 		}
 
+		if(inputs[LENGTH_CV_INPUT].isConnected()){
+			seqLength = (int)(inputs[LENGTH_CV_INPUT].getVoltage() / 5.01f * (VAULT_SIZE_MINUS_1));
+			while(seqLength < 0) seqLength += VAULT_SIZE_MINUS_1;
+			while(seqLength >= VAULT_SIZE_MINUS_1) seqLength -= VAULT_SIZE_MINUS_1;
+			seqLength+=1;
+			if(startStepMode && !recording){
+				//Do nothing
+			}else{
+				params[LENGTH_KNOB_PARAM].setValue(seqLength);
+			}
+		}else{
+			seqLength = (int)params[LENGTH_KNOB_PARAM].getValue();
+		}
 
-		seqLength = (int)params[LENGTH_KNOB_PARAM].getValue();
-
-		int stepSelect = (int)params[STEP_KNOB_PARAM].getValue();
-		
-		if(stepSelect_prev != stepSelect){
-			stepSelect_prev = stepSelect;
-			vault_pos = stepSelect;
+		if(startStepMode && !recording){
+			seqStart = getSeqStartPos();
+		}else{
+			int stepSelect = (int)params[STEP_KNOB_PARAM].getValue();
 			
-			//When cycling through the steps trigger a fake/preview gate for a quarter second
-			stepSelect_previewGateTimer = args.sampleRate / 4;
+			if(stepSelect_prev != stepSelect){
+				stepSelect_prev = stepSelect;
+				vault_pos = stepSelect;
+				
+				//When cycling through the steps trigger a fake/preview gate for a quarter second
+				stepSelect_previewGateTimer = args.sampleRate / 4;
 
-			//Clear this to allow for previewing of steps
-			partialPlayClock = false;
-		}		
+				//Clear this to allow for previewing of steps
+				partialPlayClock = false;
+			}		
+		}
 
 		//Clock Detection
 		{
@@ -330,7 +356,7 @@ struct ChordVault_P2 : Module {
 			}
 
 			if(resetEvent){
-				setVaultPos(0);
+				setVaultPos(seqStart);
 				partialPlayClock = true; //set this to true to cause the next gate to play step 1
 
 				//Stop previewing on reset
@@ -367,7 +393,7 @@ struct ChordVault_P2 : Module {
 					//On Gate high on this step, first clear all the gate values
 					//Clear next gates
 					for(int ci = 0; ci < CHANNEL_COUNT; ci++){
-						vault_gate[vault_pos][ci] = false;
+						vault_gate[getVaultPos()][ci] = false;
 					}
 				}
 			}
@@ -394,8 +420,8 @@ struct ChordVault_P2 : Module {
 					float inCV = inputs[CV_IN_INPUT].getVoltage(ci);
 					float inGate = inputs[GATE_IN_INPUT].getVoltage(ci);
 					if(inGate >= 2.0f){
-						vault_cv[vault_pos][ci] = inCV;
-						vault_gate[vault_pos][ci] = true;
+						vault_cv[getVaultPos()][ci] = inCV;
+						vault_gate[getVaultPos()][ci] = true;
 					}
 					//Since we don't record to the vault until the gates are up we need this extra case here
 					//If the gates are down (before the gates go up) we want to output the values that are form the inputs
@@ -420,13 +446,13 @@ struct ChordVault_P2 : Module {
 
 				if(outputVaultValues){
 					//Output Gate Value
-					bool gateValue = vault_gate[vault_pos][ci];
+					bool gateValue = vault_gate[getVaultPos()][ci];
 					outputs[GATE_OUT_OUTPUT].setVoltage((outGateHigh && gateValue) ? 10.f : 0.f,ci);
 
 					//Output CV Value
 					//This check makes it so steps without a gate don't change CV and instead hold their previous value
 					if(gateValue){
-						outputs[CV_OUT_OUTPUT].setVoltage(vault_cv[vault_pos][ci],ci);
+						outputs[CV_OUT_OUTPUT].setVoltage(vault_cv[getVaultPos()][ci],ci);
 					}					
 				}			
 			}
@@ -436,8 +462,25 @@ struct ChordVault_P2 : Module {
 	void setVaultPos(int new_pos){
 		if(vault_pos == new_pos) return;
 		vault_pos = new_pos;
-		params[STEP_KNOB_PARAM].setValue(vault_pos);
-		stepSelect_prev = new_pos;
+		if(startStepMode && !recording){
+			//Do Nothing
+		}else{
+			params[STEP_KNOB_PARAM].setValue(vault_pos);
+			stepSelect_prev = new_pos;
+		}
+
+		if(dynamicChannels && !recording){
+			activeChannels = 0;
+			for(int ci = 0; ci < channels; ci++){
+				if(vault_gate[getVaultPos()][ci]) activeChannels++;
+			}
+		}else{
+			activeChannels = channels;
+		}
+	}
+
+	inline int getVaultPos(){
+		return vault_pos % VAULT_SIZE;
 	}
 
 	void setStartingVaultPosition(){
@@ -445,11 +488,11 @@ struct ChordVault_P2 : Module {
 			case SKIP:
 			case PING_PONG:
 			case FORWARD:{
-				setVaultPos(0);
+				setVaultPos(seqStart);
 				}break;
 		
 			case BACKWARD:{
-				setVaultPos(seqLength-1);
+				setVaultPos(seqStart+seqLength-1);
 				}break;
 
 			case RANDOM:{
@@ -474,20 +517,20 @@ struct ChordVault_P2 : Module {
 			//Normal Modes
 			case FORWARD:{
 				setVaultPos(vault_pos+1);
-				if(vault_pos >= seqLength) setVaultPos(0);
+				if(vault_pos >= seqLength+seqStart) setVaultPos(seqStart);
 				}break;
 		
 			case BACKWARD:{
 				setVaultPos(vault_pos-1);
-				if(vault_pos < 0) setVaultPos(seqLength-1);
+				if(vault_pos < seqStart) setVaultPos(seqLength-1);
 				}break;
 
 			case RANDOM:{
 				if(seqLength == 1){
-					setVaultPos(0);
+					setVaultPos(seqStart);
 				}else{
 					//Select a new position that isn't the current one
-					int newPos = (int)std::floor(rack::random::uniform() * (seqLength - 1));
+					int newPos = seqStart + (int)std::floor(rack::random::uniform() * (seqLength - 1));
 					if(newPos >= vault_pos) newPos++;
 					setVaultPos(newPos);
 				}
@@ -506,23 +549,23 @@ struct ChordVault_P2 : Module {
 				}else{
 					setVaultPos(vault_pos+1);
 				}
-				while(vault_pos >= seqLength) vault_pos -= seqLength;
+				while(vault_pos >= seqLength+seqStart) vault_pos -= (seqLength);
 				}break;
 
 			case PING_PONG:{
 				if(seqLength == 1){
-					setVaultPos(0);
+					setVaultPos(seqStart);
 				}else{
 					if(pingPongDir){
 						setVaultPos(vault_pos+1);
-						if(vault_pos >= seqLength){
-							setVaultPos(seqLength-2);
+						if(vault_pos >= seqLength+seqStart){
+							setVaultPos(seqLength-2+seqStart);
 							pingPongDir = false;
 						}
 					}else{
 						setVaultPos(vault_pos-1);
-						if(vault_pos < 0){
-							setVaultPos(1);
+						if(vault_pos < seqStart){
+							setVaultPos(seqStart+1);
 							pingPongDir = true;
 						}
 					}
@@ -544,15 +587,22 @@ struct ChordVault_P2 : Module {
 				}
 				shuffle_index++;
 				if(shuffle_index >= seqLength) shuffle_index = 0;
-				setVaultPos(shuffle_arr[shuffle_index]);
+				setVaultPos(seqStart+shuffle_arr[shuffle_index]);
 				}break;
-		}
+		}		
 	}
 
 	int getCV_vault_pos(){
-		int newPos = inputs[STEP_CV_INPUT].getVoltage() / 5.f * seqLength;
+		int newPos = inputs[STEP_CV_INPUT].getVoltage() / 5.01f * seqLength;
 		while(newPos < 0) newPos += seqLength;
 		while(newPos >= seqLength) newPos -= seqLength; 
+		return newPos;
+	}
+
+	int getSeqStartPos(){
+		int newPos = inputs[STEP_CV_INPUT].getVoltage() / 5.01f + params[STEP_KNOB_PARAM].getValue();
+		while(newPos < 0) newPos += VAULT_SIZE;
+		while(newPos >= VAULT_SIZE) newPos -= VAULT_SIZE; 
 		return newPos;
 	}
 
@@ -573,8 +623,8 @@ struct ChordVault_P2 : Module {
 	void sortAndClearCurrentCVs(){
 		float activeCVs [CHANNEL_COUNT];
 		int activeCV_count = 0;
-		auto cvs = vault_cv[vault_pos];
-		auto gates = vault_gate[vault_pos];
+		auto cvs = vault_cv[getVaultPos()];
+		auto gates = vault_gate[getVaultPos()];
 		for(int ci = 0; ci < channels; ci++){
 			if(gates[ci]){
 				activeCVs[activeCV_count] = cvs[ci];
@@ -616,11 +666,12 @@ struct ChordVault_P2Widget : ModuleWidget {
 				if (steps_prev != steps){
 					steps_prev = steps;
 					if(steps == -1){
-						text = "";
+						text = "1";
 					}else{
 						text = string::f("%d", steps + 1);	
 					}
-					this->fgColor = steps < module->seqLength ? SCHEME_WHITE : SCHEME_RED_CUSTOM;
+					int effStep = steps - steps;
+					this->fgColor = effStep >= 0 && effStep < module->seqLength ? SCHEME_WHITE : SCHEME_RED_CUSTOM;
 				}
 			}else{
 				text = string::f("1");	
@@ -674,12 +725,19 @@ struct ChordVault_P2Widget : ModuleWidget {
 		addOutput(createOutputCentered<aetrion::Port>(mm2px(Vec(18.061, 110.503)), module, ChordVault_P2::GATE_OUT_OUTPUT));
 		addOutput(createOutputCentered<aetrion::Port>(mm2px(Vec(29.937, 110.503)), module, ChordVault_P2::CV_OUT_OUTPUT));
 
-		addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(10.991, 16.274)), module, ChordVault_P2::RECORD_LIGHT_LIGHT));
-		addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(23.815, 16.274)), module, ChordVault_P2::PLAY_LIGHT_LIGHT));
-		addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(10.334, 49.172)), module, ChordVault_P2::PLAY_FORWARD_LIGHT));
-		addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(15.89, 49.171)), module, ChordVault_P2::PLAY_BACKWARD_LIGHT));
-		addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(21.48, 49.172)), module, ChordVault_P2::PLAY_RANDOM_LIGHT));
-		addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(27.036, 49.172)), module, ChordVault_P2::PLAY_CV_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(10.991, 16.274)), module, ChordVault_P2::RECORD_LIGHT_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(23.815, 16.274)), module, ChordVault_P2::PLAY_LIGHT_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(10.334, 49.172)), module, ChordVault_P2::PLAY_FORWARD_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(15.89, 49.171)), module, ChordVault_P2::PLAY_BACKWARD_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(21.48, 49.172)), module, ChordVault_P2::PLAY_RANDOM_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(27.036, 49.172)), module, ChordVault_P2::PLAY_CV_LIGHT));
+
+		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(11.991, 16.274)), module, ChordVault_P2::RECORD_LIGHT_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(22.815, 16.274)), module, ChordVault_P2::PLAY_LIGHT_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(10.334, 49.172)), module, ChordVault_P2::PLAY_FORWARD_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(15.89, 49.171)), module, ChordVault_P2::PLAY_BACKWARD_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(21.48, 49.172)), module, ChordVault_P2::PLAY_RANDOM_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(27.036, 49.172)), module, ChordVault_P2::PLAY_CV_LIGHT));
 
 		{
 			CurStepDisplay* display = createWidget<CurStepDisplay>(mm2px(Vec(5.235, 32.974)));
@@ -706,7 +764,6 @@ struct ChordVault_P2Widget : ModuleWidget {
 		
 		menu->addChild(createSubmenuItem("Play Mode", PLAY_MODE_NAMES[module->playMode],
 			[=](Menu* menu) {
-				menu->addChild(createMenuLabel("Play Mode?"));
 				for(int i = 0; i < PlayMode_MAX; i++){
 					menu->addChild(createMenuItem(PLAY_MODE_NAMES[i], CHECKMARK(module->playMode == i), [module,i]() { 
 						module->playMode = (PlayMode)i;
@@ -716,14 +773,37 @@ struct ChordVault_P2Widget : ModuleWidget {
 			}
 		));
 
-		menu->addChild(createSubmenuItem("Polyphony channels", std::to_string(module->channels),
+		menu->addChild(createSubmenuItem("Max Polyphony channels", std::to_string(module->channels),
 			[=](Menu* menu) {
-				menu->addChild(createMenuLabel("Play Mode?"));
 				for(int i = 3; i <= CHANNEL_COUNT; i++){
 					menu->addChild(createMenuItem(std::to_string(i), CHECKMARK(module->channels == i), [module,i]() { 
 						module->channels = i;
 					}));
 				}
+			}
+		));
+
+		menu->addChild(createSubmenuItem("Dynamic Channels", module->dynamicChannels ? "Yes" : "No",
+			[=](Menu* menu) {
+				menu->addChild(createMenuLabel("Change the number of output channels to match each chord?"));
+				menu->addChild(createMenuItem("No", CHECKMARK(module->dynamicChannels == false), [module]() { 
+					module->dynamicChannels = false;
+				}));
+				menu->addChild(createMenuItem("Yes", CHECKMARK(module->dynamicChannels == true), [module]() { 
+					module->dynamicChannels = true;
+				}));
+			}
+		));
+
+		menu->addChild(createSubmenuItem("Start Step", module->startStepMode ? "Yes" : "No",
+			[=](Menu* menu) {
+				menu->addChild(createMenuLabel("Step Knob/CV adjust sequence start in Play Mode?"));
+				menu->addChild(createMenuItem("No", CHECKMARK(module->startStepMode == false), [module]() { 
+					module->startStepMode = false;
+				}));
+				menu->addChild(createMenuItem("Yes", CHECKMARK(module->startStepMode == true), [module]() { 
+					module->startStepMode = true;
+				}));
 			}
 		));
 	}
