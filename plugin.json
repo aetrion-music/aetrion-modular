@@ -17,11 +17,19 @@
       "slug": "ChordVault_P1",
       "name": "ChordVault Prototype 1",
       "description": "",
-      "tags": []
+      "tags": [],
+      "hidden": true
     },
     {
       "slug": "ChordVault_P2",
       "name": "ChordVault Prototype 2",
+      "description": "",
+      "tags": [],
+      "hidden": true
+    },
+    {
+      "slug": "ChordVault",
+      "name": "ChordVault",
       "description": "",
       "tags": []
     }

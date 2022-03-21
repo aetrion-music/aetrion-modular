@@ -9,32 +9,63 @@ using namespace aetrion;
 #define CHANNEL_COUNT 8
 #define PlayMode_MAX 8
 
-	enum PlayMode{
-		//Normal Modes
-		FORWARD,
-		BACKWARD,
-		RANDOM,
-		CV,
+#define RndChordOption_MAX 16
 
-		//Secret Modes
-		SKIP,
-		PING_PONG,
-		SHUFFLE,
-		GLIDE,
-	};
+enum PlayMode{
+	//Normal Modes
+	FORWARD,
+	BACKWARD,
+	RANDOM,
+	CV,
 
-	static std::string PLAY_MODE_NAMES [PlayMode_MAX] = {
-		"Forward",
-		"Backward",
-		"Random",
-		"CV Controled",
-		"Skip",
-		"Ping Pong",
-		"Shuffle",
-		"Glide",
-	};
+	//Secret Modes
+	SKIP,
+	PING_PONG,
+	SHUFFLE,
+	GLIDE,
+};
 
-struct ChordVault_P2 : Module {
+static std::string PLAY_MODE_NAMES [PlayMode_MAX] = {
+	"Forward",
+	"Backward",
+	"Random",
+	"CV Controled",
+	"Skip",
+	"Ping Pong",
+	"Shuffle",
+	"Glide",
+};
+
+#define A_NOTE -3/12.f
+#define As_NOTE -2/12.f
+#define B_NOTE -1/12.f
+#define C_NOTE 0
+#define Cs_NOTE 1/12.f
+#define D_NOTE 2/12.f
+#define Ds_NOTE 3/12.f
+#define E_NOTE 4/12.f
+#define F_NOTE 5/12.f
+#define Fs_NOTE 6/12.f
+#define G_NOTE 7/12.f
+#define Gs_NOTE 8/12.f
+
+
+float RndChordOption [RndChordOption_MAX][3] = {
+	{A_NOTE,Cs_NOTE,E_NOTE}, //A Major
+	{A_NOTE,C_NOTE,E_NOTE}, //A Minor
+	{C_NOTE,E_NOTE,G_NOTE}, //C Major
+	{C_NOTE,Ds_NOTE,G_NOTE}, //C Minor
+	{D_NOTE,Fs_NOTE,A_NOTE}, //D Major
+	{D_NOTE,F_NOTE,A_NOTE}, //D Minor
+	{E_NOTE,Gs_NOTE,B_NOTE}, //E Major
+	{E_NOTE,G_NOTE,B_NOTE}, //E Minor
+	{F_NOTE,As_NOTE,C_NOTE}, //F Major
+	{F_NOTE,Gs_NOTE,C_NOTE}, //F Minor
+	{G_NOTE,B_NOTE,D_NOTE}, //G Major
+	{G_NOTE,As_NOTE,D_NOTE}, //G Minor
+};
+
+struct ChordVault : Module {
 	enum ParamId {
 		STEP_KNOB_PARAM,
 		RECORD_PLAY_BTN_PARAM,
@@ -67,6 +98,14 @@ struct ChordVault_P2 : Module {
 		LIGHTS_LEN
 	};
 
+	struct SeqModeQuantity : ParamQuantity  {
+		std::string getDisplayValueString() override {
+			if(!module) return "";
+			ChordVault* cvModule = dynamic_cast<ChordVault*>(module);
+			return PLAY_MODE_NAMES[cvModule->playMode];
+		}
+	};
+
 	//Not Persisted
 
 	int seqStart;
@@ -94,19 +133,22 @@ struct ChordVault_P2 : Module {
 	int channels;
 	bool dynamicChannels;
 	bool startStepMode;
+	bool skipPartialClock;
 
 	int shuffle_index;
 	int shuffle_arr [VAULT_SIZE];
 
 	PlayMode playMode;
 
-	ChordVault_P2() {
+	ChordVault() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configParam(STEP_KNOB_PARAM, 0.f, 15.f, 0.f, "Step Select", " step", 0, 1, 1);
+		configParam<UnitPrefixQuanity>(STEP_KNOB_PARAM, 0.f, 15.f, 0.f, "Step Select", "Step ", 0, 1, 1);
+		getParamQuantity(STEP_KNOB_PARAM)->randomizeEnabled = false;
+
 		configButton(RECORD_PLAY_BTN_PARAM, "Play/Record");
 		configParam(LENGTH_KNOB_PARAM, 1.f, 16.f, 4.f, "Step Length", " steps");
 		configButton(RESET_BTN_PARAM, "Reset");
-		configButton(PLAY_MODE_PARAM, "Sequence Mode");
+		configButton<SeqModeQuantity>(PLAY_MODE_PARAM, "Sequence Mode");
 
 		configInput(STEP_CV_INPUT, "Step CV");
 		configInput(RESET_INPUT, "Reset");
@@ -117,6 +159,8 @@ struct ChordVault_P2 : Module {
 
 		configOutput(GATE_OUT_OUTPUT, "Gates");
 		configOutput(CV_OUT_OUTPUT, "V/octs");
+
+
 
 		initalize();
 	}
@@ -131,6 +175,13 @@ struct ChordVault_P2 : Module {
 
 	void onRandomize (const RandomizeEvent& e) override {
 		Module::onRandomize(e);
+		for(int si = 0; si < VAULT_SIZE; si ++){
+			int chordIndex = floor(rack::random::uniform() * RndChordOption_MAX);
+			for(int ci = 0; ci < 3; ci++){
+				vault_gate[si][ci] = true;
+				vault_cv[si][ci] = RndChordOption[chordIndex][ci];
+			}
+		}
 	}
 
 	void initalize(){
@@ -156,6 +207,7 @@ struct ChordVault_P2 : Module {
 		channels = 5;
 		dynamicChannels = false;
 		startStepMode = false;
+		skipPartialClock = false;
 		playMode = (PlayMode)0;	
 		shuffle_index = 0;
 		for(int i = 0; i < VAULT_SIZE; i++) shuffle_arr[i] = i;
@@ -174,6 +226,8 @@ struct ChordVault_P2 : Module {
 		json_object_set_new(jobj, "recording", json_bool(recording));
 		json_object_set_new(jobj, "dynamicChannels", json_bool(dynamicChannels));
 		json_object_set_new(jobj, "startStepMode", json_bool(startStepMode));
+		json_object_set_new(jobj, "skipPartialClock", json_bool(skipPartialClock));
+		
 
 		json_t *vaultJ = json_array();
 		json_t *shuffle_arrJ = json_array();
@@ -200,6 +254,8 @@ struct ChordVault_P2 : Module {
 		recording = json_is_true(json_object_get(jobj, "recording"));
 		dynamicChannels = json_is_true(json_object_get(jobj, "dynamicChannels"));
 		startStepMode = json_is_true(json_object_get(jobj, "startStepMode"));
+		skipPartialClock = json_is_true(json_object_get(jobj, "skipPartialClock"));
+		
 
 		json_t *vaultJ = json_object_get(jobj,"vault");
 		json_t *shuffle_arrJ = json_object_get(jobj,"shuffle_arr");
@@ -242,7 +298,7 @@ struct ChordVault_P2 : Module {
 				}else{
 					//When changing record -> play mode reset play position
 					setVaultPos(seqStart);
-					partialPlayClock = true;
+					partialPlayClock = skipPartialClock;
 
 					//If done recording sort the current CVs
 					sortAndClearCurrentCVs();
@@ -282,14 +338,16 @@ struct ChordVault_P2 : Module {
 		}
 
 		if(inputs[LENGTH_CV_INPUT].isConnected()){
-			seqLength = (int)(inputs[LENGTH_CV_INPUT].getVoltage() / 5.01f * (VAULT_SIZE));
-			while(seqLength < 0) seqLength += VAULT_SIZE;
-			while(seqLength >= VAULT_SIZE) seqLength -= VAULT_SIZE;
-			seqLength+=1;
-			if(startStepMode && !recording){
-				//Do nothing
-			}else{
+			if(!recording){
+				//Playback Mode
+				seqLength = (int)(inputs[LENGTH_CV_INPUT].getVoltage() / 5.01f * (VAULT_SIZE));
+				while(seqLength < 0) seqLength += VAULT_SIZE;
+				while(seqLength >= VAULT_SIZE) seqLength -= VAULT_SIZE;
+				seqLength+=1;			
 				params[LENGTH_KNOB_PARAM].setValue(seqLength);
+			}else{
+				//Don't animate Length knob when in record mode
+				//Also don't update the length display based on CV input when in record mode
 			}
 		}else{
 			seqLength = (int)params[LENGTH_KNOB_PARAM].getValue();
@@ -362,7 +420,7 @@ struct ChordVault_P2 : Module {
 
 			if(resetEvent){
 				setVaultPos(seqStart);
-				partialPlayClock = true; //set this to true to cause the next gate to play step 1
+				partialPlayClock = skipPartialClock; //set this to true to cause the next gate to play step 1
 
 				//Stop previewing on reset
 				stepSelect_previewGateTimer = 0;				
@@ -474,6 +532,10 @@ struct ChordVault_P2 : Module {
 			stepSelect_prev = new_pos;
 		}
 
+		updateActiveChannels();
+	}
+
+	void updateActiveChannels(){
 		if(dynamicChannels && !recording){
 			activeChannels = 0;
 			for(int ci = 0; ci < channels; ci++){
@@ -605,7 +667,7 @@ struct ChordVault_P2 : Module {
 	}
 
 	int getSeqStartPos(){
-		int newPos = inputs[STEP_CV_INPUT].getVoltage() / 5.01f + params[STEP_KNOB_PARAM].getValue();
+		int newPos = inputs[STEP_CV_INPUT].getVoltage() / 5.01f * VAULT_SIZE + params[STEP_KNOB_PARAM].getValue();
 		while(newPos < 0) newPos += VAULT_SIZE;
 		while(newPos >= VAULT_SIZE) newPos -= VAULT_SIZE; 
 		return newPos;
@@ -621,7 +683,7 @@ struct ChordVault_P2 : Module {
 		lights[PLAY_RANDOM_LIGHT + 0].setBrightness(playMode == RANDOM ? 1 : 0);
 		lights[PLAY_RANDOM_LIGHT + 1].setBrightness(playMode == SHUFFLE ? 1 : 0);
 
-		lights[PLAY_CV_LIGHT + 0].setBrightness(playMode == CV ? 1 : 0);
+		lights[PLAY_CV_LIGHT + 0].setBrightness(startStepMode || playMode == CV ? 1 : 0);
 		lights[PLAY_CV_LIGHT + 1].setBrightness(playMode == GLIDE ? 1 : 0);
 	}
 
@@ -650,9 +712,65 @@ struct ChordVault_P2 : Module {
 			}
 		}
 	}
+
+	void shiftNotes(int semitones){
+		float voct = semitones / 12.f;
+		for(int si = 0; si < VAULT_SIZE; si ++){
+			for(int ci = 0; ci < CHANNEL_COUNT; ci++){
+				if(vault_gate[si][ci]){
+					vault_cv[si][ci] += voct;
+				}
+			}
+		}
+	}
 };
 
-struct ChordVault_P2Widget : ModuleWidget {
+struct ChordVaultWidget : ModuleWidget {
+
+	struct CurStepKnob : LargeKnob {
+
+		CurStepKnob() {
+			
+		}
+		void drawLayer(const DrawArgs& args, int layer) override
+		{
+			engine::ParamQuantity* pq = getParamQuantity();
+			if (pq==nullptr)
+			{
+				Widget::drawLayer(args,layer);
+				return;
+			}
+			ChordVault* module = dynamic_cast<ChordVault*>(this->getParamQuantity()->module);
+			if (module && layer == 1)
+			{
+				//float value = pq->getSmoothValue();
+
+				Vec center = args.clipBox.getCenter();
+				float angleRange = maxAngle - minAngle;
+				float angleDelta = angleRange / VAULT_SIZE_MINUS_1;
+				int start_index = module->seqStart;
+				int end_index = start_index + module->seqLength;
+				int cur_index = module->getVaultPos();
+				for(int i = start_index; i < end_index; i++){
+					int si = (i % VAULT_SIZE);
+					float angle = minAngle + si * angleDelta;
+
+					//No dot for current position
+					bool currentStep = si == cur_index;
+					nvgBeginPath(args.vg);	
+					Vec pos = center + Vec(0,-15.6f).rotate(angle);
+					nvgCircle(args.vg, pos.x, pos.y, 1.5f);
+					nvgFillColor(args.vg, currentStep ? SCHEME_RED_CUSTOM : SCHEME_WHITE_CUSTOM);
+					nvgFill(args.vg);
+				}
+			}
+			Widget::drawLayer(args,layer);
+		}
+		void draw(const DrawArgs& args) override
+	    {
+	        LargeKnob::draw(args);
+	    }
+	};
 
 	struct CurStepDisplay : DigitalDisplay {
 		CurStepDisplay() {
@@ -660,7 +778,7 @@ struct ChordVault_P2Widget : ModuleWidget {
 			bgText = "18";
 			fontSize = 8;
 		}
-		ChordVault_P2* module;
+		ChordVault* module;
 		int steps_prev = -1;
 		void step() override {
 			if (module) {
@@ -690,7 +808,7 @@ struct ChordVault_P2Widget : ModuleWidget {
 			bgText = "18";
 			fontSize = 8;
 		}
-		ChordVault_P2* module;
+		ChordVault* module;
 		int length_prev = -1;
 		void step() override {
 			if (module) {
@@ -705,44 +823,44 @@ struct ChordVault_P2Widget : ModuleWidget {
 		}
 	};
 
-	ChordVault_P2Widget(ChordVault_P2* module) {
+	ChordVaultWidget(ChordVault* module) {
 		setModule(module);
-		setPanel(createPanel(asset::plugin(pluginInstance, "res/ChordVault_P2.svg")));
+		setPanel(createPanel(asset::plugin(pluginInstance, "res/ChordVault.svg")));
 
 		addChild(createWidget<ScrewSilver>(Vec(0, 0)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 1 * RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<ScrewSilver>(Vec(0, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 1 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		addParam(createParamCentered<RotarySwitch<LargeKnob>>(mm2px(Vec(18.101, 34.556)), module, ChordVault_P2::STEP_KNOB_PARAM));
-		addParam(createParamCentered<RotarySwitch<LargeKnob>>(mm2px(Vec(18.101, 70.424)), module, ChordVault_P2::LENGTH_KNOB_PARAM));
-		addParam(createParamCentered<SmallButton>(mm2px(Vec(17.403, 16.274)), module, ChordVault_P2::RECORD_PLAY_BTN_PARAM));		
-		addParam(createParamCentered<SmallButton>(mm2px(Vec(5.566, 85.815)), module, ChordVault_P2::RESET_BTN_PARAM));
-		addParam(createParamCentered<SmallButton>(mm2px(Vec(5.566, 50.141)), module, ChordVault_P2::PLAY_MODE_PARAM));
+		addParam(createParamCentered<RotarySwitch<CurStepKnob>>(mm2px(Vec(18.101, 34.556)), module, ChordVault::STEP_KNOB_PARAM));
+		addParam(createParamCentered<RotarySwitch<LargeKnob>>(mm2px(Vec(18.101, 70.424)), module, ChordVault::LENGTH_KNOB_PARAM));
+		addParam(createParamCentered<SmallButton>(mm2px(Vec(17.403, 16.274)), module, ChordVault::RECORD_PLAY_BTN_PARAM));		
+		addParam(createParamCentered<SmallButton>(mm2px(Vec(5.566, 85.815)), module, ChordVault::RESET_BTN_PARAM));
+		addParam(createParamCentered<SmallButton>(mm2px(Vec(5.566, 50.141)), module, ChordVault::PLAY_MODE_PARAM));
 
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.98, 34.111)), module, ChordVault_P2::STEP_CV_INPUT));
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(5.648, 93.131)), module, ChordVault_P2::RESET_INPUT));
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(5.648, 110.558)), module, ChordVault_P2::CLOCK_INPUT));
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(18.143, 93.131)), module, ChordVault_P2::GATE_IN_INPUT));
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.98, 93.131)), module, ChordVault_P2::CV_IN_INPUT));
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.98, 70.691)), module, ChordVault_P2::LENGTH_CV_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.98, 34.111)), module, ChordVault::STEP_CV_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(5.648, 93.131)), module, ChordVault::RESET_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(5.648, 110.558)), module, ChordVault::CLOCK_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(18.143, 93.131)), module, ChordVault::GATE_IN_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.98, 93.131)), module, ChordVault::CV_IN_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.98, 70.691)), module, ChordVault::LENGTH_CV_INPUT));
 
-		addOutput(createOutputCentered<aetrion::Port>(mm2px(Vec(18.061, 110.503)), module, ChordVault_P2::GATE_OUT_OUTPUT));
-		addOutput(createOutputCentered<aetrion::Port>(mm2px(Vec(29.937, 110.503)), module, ChordVault_P2::CV_OUT_OUTPUT));
+		addOutput(createOutputCentered<aetrion::Port>(mm2px(Vec(18.061, 110.503)), module, ChordVault::GATE_OUT_OUTPUT));
+		addOutput(createOutputCentered<aetrion::Port>(mm2px(Vec(29.937, 110.503)), module, ChordVault::CV_OUT_OUTPUT));
 
-		// addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(10.991, 16.274)), module, ChordVault_P2::RECORD_LIGHT_LIGHT));
-		// addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(23.815, 16.274)), module, ChordVault_P2::PLAY_LIGHT_LIGHT));
-		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(10.334, 49.172)), module, ChordVault_P2::PLAY_FORWARD_LIGHT));
-		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(15.89, 49.171)), module, ChordVault_P2::PLAY_BACKWARD_LIGHT));
-		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(21.48, 49.172)), module, ChordVault_P2::PLAY_RANDOM_LIGHT));
-		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(27.036, 49.172)), module, ChordVault_P2::PLAY_CV_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(10.991, 16.274)), module, ChordVault::RECORD_LIGHT_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(23.815, 16.274)), module, ChordVault::PLAY_LIGHT_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(10.334, 49.172)), module, ChordVault::PLAY_FORWARD_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(15.89, 49.171)), module, ChordVault::PLAY_BACKWARD_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(21.48, 49.172)), module, ChordVault::PLAY_RANDOM_LIGHT));
+		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(27.036, 49.172)), module, ChordVault::PLAY_CV_LIGHT));
 
-		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(11.991, 16.274)), module, ChordVault_P2::RECORD_LIGHT_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(22.815, 16.274)), module, ChordVault_P2::PLAY_LIGHT_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(10.334, 49.172)), module, ChordVault_P2::PLAY_FORWARD_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(15.89, 49.171)), module, ChordVault_P2::PLAY_BACKWARD_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(21.48, 49.172)), module, ChordVault_P2::PLAY_RANDOM_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(27.036, 49.172)), module, ChordVault_P2::PLAY_CV_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(11.991, 16.274)), module, ChordVault::RECORD_LIGHT_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(22.815, 16.274)), module, ChordVault::PLAY_LIGHT_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(10.334, 49.172)), module, ChordVault::PLAY_FORWARD_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(15.89, 49.171)), module, ChordVault::PLAY_BACKWARD_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(21.48, 49.172)), module, ChordVault::PLAY_RANDOM_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(27.036, 49.172)), module, ChordVault::PLAY_CV_LIGHT));
 
 		{
 			CurStepDisplay* display = createWidget<CurStepDisplay>(mm2px(Vec(5.235, 32.974)));
@@ -762,7 +880,7 @@ struct ChordVault_P2Widget : ModuleWidget {
 	}
 
 	void appendContextMenu(Menu* menu) override {
-		ChordVault_P2* module = dynamic_cast<ChordVault_P2*>(this->module);
+		ChordVault* module = dynamic_cast<ChordVault*>(this->module);
 
 		menu->addChild(new MenuEntry); //Blank Row
 		menu->addChild(createMenuLabel("Chord Vault"));
@@ -783,6 +901,7 @@ struct ChordVault_P2Widget : ModuleWidget {
 				for(int i = 3; i <= CHANNEL_COUNT; i++){
 					menu->addChild(createMenuItem(std::to_string(i), CHECKMARK(module->channels == i), [module,i]() { 
 						module->channels = i;
+						module->updateActiveChannels();
 					}));
 				}
 			}
@@ -811,8 +930,99 @@ struct ChordVault_P2Widget : ModuleWidget {
 				}));
 			}
 		));
+
+		menu->addChild(createSubmenuItem("Skip Partial Clock", module->skipPartialClock ? "Yes" : "No",
+			[=](Menu* menu) {
+				menu->addChild(createMenuLabel("Skip the first partial clock after reset/entering play mode?"));
+				menu->addChild(createMenuItem("No", CHECKMARK(module->skipPartialClock == false), [module]() { 
+					module->skipPartialClock = false;
+				}));
+				menu->addChild(createMenuItem("Yes", CHECKMARK(module->skipPartialClock == true), [module]() { 
+					module->skipPartialClock = true;
+				}));
+			}
+		));
+
+		menu->addChild(createSubmenuItem("Shift Notes", "",
+			[=](Menu* menu) {
+				menu->addChild(createMenuLabel("Shift all notes by X Semitones"));
+				menu->addChild(createMenuItem("-12 (Perfect Octave)", "", [module]() { 
+					module->shiftNotes(-12);
+				}));
+				menu->addChild(createMenuItem("-11 (Major 7th)", "", [module]() { 
+					module->shiftNotes(-11);
+				}));
+				menu->addChild(createMenuItem("-10 (Minor 7th)", "", [module]() { 
+					module->shiftNotes(-10);
+				}));
+				menu->addChild(createMenuItem("-9 (Major 6th)", "", [module]() { 
+					module->shiftNotes(-9);
+				}));
+				menu->addChild(createMenuItem("-8 (Minor 6th)", "", [module]() { 
+					module->shiftNotes(-8);
+				}));
+				menu->addChild(createMenuItem("-7 (Perfect 5th)", "", [module]() { 
+					module->shiftNotes(-7);
+				}));
+				menu->addChild(createMenuItem("-6 (Diminished 5th)", "", [module]() { 
+					module->shiftNotes(-6);
+				}));
+				menu->addChild(createMenuItem("-5 (Perfect 4th)", "", [module]() { 
+					module->shiftNotes(-5);
+				}));
+				menu->addChild(createMenuItem("-4 (Major 3rd)", "", [module]() { 
+					module->shiftNotes(-4);
+				}));
+				menu->addChild(createMenuItem("-3 (Minor 3rd)", "", [module]() { 
+					module->shiftNotes(-3);
+				}));
+				menu->addChild(createMenuItem("-2 (Major 2nd)", "", [module]() { 
+					module->shiftNotes(-2);
+				}));
+				menu->addChild(createMenuItem("-1 (Minor 2nd)", "", [module]() { 
+					module->shiftNotes(-1);
+				}));
+				menu->addChild(createMenuLabel(""));
+				menu->addChild(createMenuItem("+1 (Minor 2nd)", "", [module]() { 
+					module->shiftNotes(+1);
+				}));
+				menu->addChild(createMenuItem("+2 (Major 2nd)", "", [module]() { 
+					module->shiftNotes(+2);
+				}));
+				menu->addChild(createMenuItem("+3 (Minor 3rd)", "", [module]() { 
+					module->shiftNotes(+3);
+				}));
+				menu->addChild(createMenuItem("+4 (Major 3rd)", "", [module]() { 
+					module->shiftNotes(+4);
+				}));
+				menu->addChild(createMenuItem("+5 (Perfect 4th)", "", [module]() { 
+					module->shiftNotes(+5);
+				}));
+				menu->addChild(createMenuItem("+6 (Diminished 5th)", "", [module]() { 
+					module->shiftNotes(+6);
+				}));
+				menu->addChild(createMenuItem("+7 (Perfect 5th)", "", [module]() { 
+					module->shiftNotes(+7);
+				}));
+				menu->addChild(createMenuItem("+8 (Augmented 5th)", "", [module]() { 
+					module->shiftNotes(+8);
+				}));
+				menu->addChild(createMenuItem("+9 (Major 6th)", "", [module]() { 
+					module->shiftNotes(+9);
+				}));
+				menu->addChild(createMenuItem("+10 (Minor 7th)", "", [module]() { 
+					module->shiftNotes(+10);
+				}));
+				menu->addChild(createMenuItem("+11 (Major 7th)", "", [module]() { 
+					module->shiftNotes(+11);
+				}));
+				menu->addChild(createMenuItem("+12 (Perfect Octave)", "", [module]() { 
+					module->shiftNotes(+12);
+				}));
+			}
+		));
 	}
 };
 
 
-Model* modelChordVault_P2 = createModel<ChordVault_P2, ChordVault_P2Widget>("ChordVault_P2");
+Model* modelChordVault = createModel<ChordVault, ChordVaultWidget>("ChordVault");

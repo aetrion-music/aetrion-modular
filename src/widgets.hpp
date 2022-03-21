@@ -8,9 +8,10 @@ using namespace rack;
 
 extern Plugin *pluginInstance;
 
-namespace  aetrion {
+namespace aetrion {
 
 static const NVGcolor SCHEME_RED_CUSTOM = nvgRGB(0xf6, 0x8f, 0xb2);
+static const NVGcolor SCHEME_WHITE_CUSTOM = nvgRGB(0xff, 0xff, 0xff);
 
 //LargeKnob
 struct LargeKnob : RoundKnob {
@@ -90,6 +91,19 @@ struct BlueRedLight : GrayModuleLightWidget {
 	BlueRedLight() {
 		addBaseColor(SCHEME_BLUE);
 		addBaseColor(SCHEME_RED_CUSTOM);
+	}
+};
+
+struct UnitPrefixQuanity : ParamQuantity  {
+	std::string getString() override {
+		std::string s;
+		std::string label = getLabel();
+		std::string valueString = getUnit() + getDisplayValueString(); //Order Changed. Rest of method is same as parent
+		s += label;
+		if (label != "" && valueString != "")
+			s += ": ";
+		s += valueString;
+		return s;
 	}
 };
 
