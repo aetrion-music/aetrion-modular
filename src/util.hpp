@@ -2,6 +2,8 @@
 
 #include "plugin.hpp"
 
+#define PI 3.141592f
+
 json_t* json_bool(bool value);
 
 json_t* json_floatArray(float * array, int length);

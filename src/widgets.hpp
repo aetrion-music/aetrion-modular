@@ -3,6 +3,7 @@
 #include "rack.hpp"
 #include <functional>
 #include <string>
+#include "util.hpp"
 
 using namespace rack;
 
@@ -13,12 +14,21 @@ namespace aetrion {
 static const NVGcolor SCHEME_RED_CUSTOM = nvgRGB(0xf6, 0x8f, 0xb2);
 static const NVGcolor SCHEME_WHITE_CUSTOM = nvgRGB(0xff, 0xff, 0xff);
 
-//LargeKnob
+//Knobs
 struct LargeKnob : RoundKnob {
 	LargeKnob();
 };
 
-//Port
+struct RangeWidget;
+
+struct LargeKnobWithRange : LargeKnob {
+	RangeWidget * rangeWidget;
+	LargeKnobWithRange();
+	//Min and max are a precentage of the knob's full range, so 0 == min value and 1 == max value
+	void updateRange(float min, float max);
+};
+
+//Ports
 struct Port : SvgPort {
 	Port();
 };

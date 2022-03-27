@@ -353,8 +353,9 @@ struct ChordVault : Module {
 			seqLength = (int)params[LENGTH_KNOB_PARAM].getValue();
 		}
 
-		if(startStepMode && !recording){
-			seqStart = getSeqStartPos();
+		bool inCVrelatedMode = playMode == CV || playMode == GLIDE;
+		if(startStepMode && !recording){			
+			seqStart = getSeqStartPos(!inCVrelatedMode);
 		}else{
 			int stepSelect = (int)params[STEP_KNOB_PARAM].getValue();
 			
@@ -368,30 +369,6 @@ struct ChordVault : Module {
 				//Clear this to allow for previewing of steps
 				partialPlayClock = false;
 			}		
-		}
-
-		//Clock Detection
-		{
-			float clockValue = inputs[CLOCK_INPUT].getVoltage(); 
-			if(clockHigh && clockValue <= 0.1f){
-				clockHigh = false;
-			}else if(!clockHigh && clockValue >= 2.0f){
-				clockHigh = true;
-
-				//If not recording, the advance the step here (on clock high)
-				if(!recording){
-					if(partialPlayClock){
-						//Absorb the partical clock and don't advance the sequence
-						partialPlayClock = false;
-						setStartingVaultPosition();
-					}else{
-						nextVaultPosition();
-
-						//Stop previewing when when moving to next step
-						stepSelect_previewGateTimer = 0;
-					}
-				}
-			}
 		}
 
 		if(!recording){
@@ -424,6 +401,31 @@ struct ChordVault : Module {
 
 				//Stop previewing on reset
 				stepSelect_previewGateTimer = 0;				
+			}
+		}
+
+		//Clock Detection
+		//Do this after reset detection so that if clock and reset have the same clock we don't miss the first clock.
+		{
+			float clockValue = inputs[CLOCK_INPUT].getVoltage(); 
+			if(clockHigh && clockValue <= 0.1f){
+				clockHigh = false;
+			}else if(!clockHigh && clockValue >= 2.0f){
+				clockHigh = true;
+
+				//If not recording, the advance the step here (on clock high)
+				if(!recording){
+					if(partialPlayClock){
+						//Absorb the partical clock and don't advance the sequence
+						partialPlayClock = false;
+						setStartingVaultPosition();
+					}else{
+						nextVaultPosition();
+
+						//Stop previewing when when moving to next step
+						stepSelect_previewGateTimer = 0;
+					}
+				}
 			}
 		}
 
@@ -663,11 +665,14 @@ struct ChordVault : Module {
 		int newPos = inputs[STEP_CV_INPUT].getVoltage() / 5.01f * seqLength;
 		while(newPos < 0) newPos += seqLength;
 		while(newPos >= seqLength) newPos -= seqLength; 
-		return newPos;
+		return seqStart + newPos;
 	}
 
-	int getSeqStartPos(){
-		int newPos = inputs[STEP_CV_INPUT].getVoltage() / 5.01f * VAULT_SIZE + params[STEP_KNOB_PARAM].getValue();
+	int getSeqStartPos(bool includeCV){
+		int newPos = params[STEP_KNOB_PARAM].getValue();
+		if(includeCV){
+			newPos += inputs[STEP_CV_INPUT].getVoltage() / 5.01f * VAULT_SIZE;
+		}
 		while(newPos < 0) newPos += VAULT_SIZE;
 		while(newPos >= VAULT_SIZE) newPos -= VAULT_SIZE; 
 		return newPos;
@@ -727,49 +732,31 @@ struct ChordVault : Module {
 
 struct ChordVaultWidget : ModuleWidget {
 
-	struct CurStepKnob : LargeKnob {
+	struct CurStepKnob : LargeKnobWithRange {
+
+		float prev_start_index = -1;
+		float prev_end_index = -1;
 
 		CurStepKnob() {
 			
 		}
-		void drawLayer(const DrawArgs& args, int layer) override
-		{
-			engine::ParamQuantity* pq = getParamQuantity();
-			if (pq==nullptr)
-			{
-				Widget::drawLayer(args,layer);
-				return;
-			}
-			ChordVault* module = dynamic_cast<ChordVault*>(this->getParamQuantity()->module);
-			if (module && layer == 1)
-			{
-				//float value = pq->getSmoothValue();
 
-				Vec center = args.clipBox.getCenter();
-				float angleRange = maxAngle - minAngle;
-				float angleDelta = angleRange / VAULT_SIZE_MINUS_1;
-				int start_index = module->seqStart;
-				int end_index = start_index + module->seqLength;
-				int cur_index = module->getVaultPos();
-				for(int i = start_index; i < end_index; i++){
-					int si = (i % VAULT_SIZE);
-					float angle = minAngle + si * angleDelta;
+		void step() override {
+			LargeKnobWithRange::step();
 
-					//No dot for current position
-					bool currentStep = si == cur_index;
-					nvgBeginPath(args.vg);	
-					Vec pos = center + Vec(0,-15.6f).rotate(angle);
-					nvgCircle(args.vg, pos.x, pos.y, 1.5f);
-					nvgFillColor(args.vg, currentStep ? SCHEME_RED_CUSTOM : SCHEME_WHITE_CUSTOM);
-					nvgFill(args.vg);
-				}
+			auto _module = static_cast<ChordVault*>(this->module);
+			int start_index = _module->seqStart;
+			int end_index = start_index + _module->seqLength;
+
+			if(prev_start_index != start_index || prev_end_index != end_index){
+				prev_start_index = start_index;
+				prev_end_index = end_index;
+				float min = (float)start_index / VAULT_SIZE_MINUS_1;
+				float max = (float)end_index / VAULT_SIZE_MINUS_1;
+				updateRange(min,max);
 			}
-			Widget::drawLayer(args,layer);
 		}
-		void draw(const DrawArgs& args) override
-	    {
-	        LargeKnob::draw(args);
-	    }
+
 	};
 
 	struct CurStepDisplay : DigitalDisplay {
@@ -924,9 +911,12 @@ struct ChordVaultWidget : ModuleWidget {
 				menu->addChild(createMenuLabel("Step Knob/CV adjust sequence start in Play Mode?"));
 				menu->addChild(createMenuItem("No", CHECKMARK(module->startStepMode == false), [module]() { 
 					module->startStepMode = false;
+					module->seqStart = 0; //When leaving the mode reset the sequence offset/start back to 0
+					module->updatePlayModeLights();
 				}));
 				menu->addChild(createMenuItem("Yes", CHECKMARK(module->startStepMode == true), [module]() { 
 					module->startStepMode = true;
+					module->updatePlayModeLights();
 				}));
 			}
 		));
@@ -946,78 +936,78 @@ struct ChordVaultWidget : ModuleWidget {
 		menu->addChild(createSubmenuItem("Shift Notes", "",
 			[=](Menu* menu) {
 				menu->addChild(createMenuLabel("Shift all notes by X Semitones"));
-				menu->addChild(createMenuItem("-12 (Perfect Octave)", "", [module]() { 
-					module->shiftNotes(-12);
-				}));
-				menu->addChild(createMenuItem("-11 (Major 7th)", "", [module]() { 
-					module->shiftNotes(-11);
-				}));
-				menu->addChild(createMenuItem("-10 (Minor 7th)", "", [module]() { 
-					module->shiftNotes(-10);
-				}));
-				menu->addChild(createMenuItem("-9 (Major 6th)", "", [module]() { 
-					module->shiftNotes(-9);
-				}));
-				menu->addChild(createMenuItem("-8 (Minor 6th)", "", [module]() { 
-					module->shiftNotes(-8);
-				}));
-				menu->addChild(createMenuItem("-7 (Perfect 5th)", "", [module]() { 
-					module->shiftNotes(-7);
-				}));
-				menu->addChild(createMenuItem("-6 (Diminished 5th)", "", [module]() { 
-					module->shiftNotes(-6);
-				}));
-				menu->addChild(createMenuItem("-5 (Perfect 4th)", "", [module]() { 
-					module->shiftNotes(-5);
-				}));
-				menu->addChild(createMenuItem("-4 (Major 3rd)", "", [module]() { 
-					module->shiftNotes(-4);
-				}));
-				menu->addChild(createMenuItem("-3 (Minor 3rd)", "", [module]() { 
-					module->shiftNotes(-3);
-				}));
-				menu->addChild(createMenuItem("-2 (Major 2nd)", "", [module]() { 
-					module->shiftNotes(-2);
-				}));
-				menu->addChild(createMenuItem("-1 (Minor 2nd)", "", [module]() { 
-					module->shiftNotes(-1);
-				}));
-				menu->addChild(createMenuLabel(""));
-				menu->addChild(createMenuItem("+1 (Minor 2nd)", "", [module]() { 
-					module->shiftNotes(+1);
-				}));
-				menu->addChild(createMenuItem("+2 (Major 2nd)", "", [module]() { 
-					module->shiftNotes(+2);
-				}));
-				menu->addChild(createMenuItem("+3 (Minor 3rd)", "", [module]() { 
-					module->shiftNotes(+3);
-				}));
-				menu->addChild(createMenuItem("+4 (Major 3rd)", "", [module]() { 
-					module->shiftNotes(+4);
-				}));
-				menu->addChild(createMenuItem("+5 (Perfect 4th)", "", [module]() { 
-					module->shiftNotes(+5);
-				}));
-				menu->addChild(createMenuItem("+6 (Diminished 5th)", "", [module]() { 
-					module->shiftNotes(+6);
-				}));
-				menu->addChild(createMenuItem("+7 (Perfect 5th)", "", [module]() { 
-					module->shiftNotes(+7);
-				}));
-				menu->addChild(createMenuItem("+8 (Augmented 5th)", "", [module]() { 
-					module->shiftNotes(+8);
-				}));
-				menu->addChild(createMenuItem("+9 (Major 6th)", "", [module]() { 
-					module->shiftNotes(+9);
-				}));
-				menu->addChild(createMenuItem("+10 (Minor 7th)", "", [module]() { 
-					module->shiftNotes(+10);
+				menu->addChild(createMenuItem("+12 (Perfect Octave)", "", [module]() { 
+					module->shiftNotes(+12);
 				}));
 				menu->addChild(createMenuItem("+11 (Major 7th)", "", [module]() { 
 					module->shiftNotes(+11);
 				}));
-				menu->addChild(createMenuItem("+12 (Perfect Octave)", "", [module]() { 
-					module->shiftNotes(+12);
+				menu->addChild(createMenuItem("+10 (Minor 7th)", "", [module]() { 
+					module->shiftNotes(+10);
+				}));
+				menu->addChild(createMenuItem("+9 (Major 6th)", "", [module]() { 
+					module->shiftNotes(+9);
+				}));
+				menu->addChild(createMenuItem("+8 (Minor 6th)", "", [module]() { 
+					module->shiftNotes(+8);
+				}));
+				menu->addChild(createMenuItem("+7 (Perfect 5th)", "", [module]() { 
+					module->shiftNotes(+7);
+				}));
+				menu->addChild(createMenuItem("+6 (Diminished 5th)", "", [module]() { 
+					module->shiftNotes(+6);
+				}));
+				menu->addChild(createMenuItem("+5 (Perfect 4th)", "", [module]() { 
+					module->shiftNotes(+5);
+				}));
+				menu->addChild(createMenuItem("+4 (Major 3rd)", "", [module]() { 
+					module->shiftNotes(+4);
+				}));
+				menu->addChild(createMenuItem("+3 (Minor 3rd)", "", [module]() { 
+					module->shiftNotes(+3);
+				}));
+				menu->addChild(createMenuItem("+2 (Major 2nd)", "", [module]() { 
+					module->shiftNotes(+2);
+				}));
+				menu->addChild(createMenuItem("+1 (Minor 2nd)", "", [module]() { 
+					module->shiftNotes(+1);
+				}));
+				menu->addChild(createMenuLabel(""));
+				menu->addChild(createMenuItem("-1 (Minor 2nd)", "", [module]() { 
+					module->shiftNotes(-1);
+				}));
+				menu->addChild(createMenuItem("-2 (Major 2nd)", "", [module]() { 
+					module->shiftNotes(-2);
+				}));
+				menu->addChild(createMenuItem("-3 (Minor 3rd)", "", [module]() { 
+					module->shiftNotes(-3);
+				}));
+				menu->addChild(createMenuItem("-4 (Major 3rd)", "", [module]() { 
+					module->shiftNotes(-4);
+				}));
+				menu->addChild(createMenuItem("-5 (Perfect 4th)", "", [module]() { 
+					module->shiftNotes(-5);
+				}));
+				menu->addChild(createMenuItem("-6 (Diminished 5th)", "", [module]() { 
+					module->shiftNotes(-6);
+				}));
+				menu->addChild(createMenuItem("-7 (Perfect 5th)", "", [module]() { 
+					module->shiftNotes(-7);
+				}));
+				menu->addChild(createMenuItem("-8 (Minor 5th)", "", [module]() { 
+					module->shiftNotes(-8);
+				}));
+				menu->addChild(createMenuItem("-9 (Major 6th)", "", [module]() { 
+					module->shiftNotes(-9);
+				}));
+				menu->addChild(createMenuItem("-10 (Minor 7th)", "", [module]() { 
+					module->shiftNotes(-10);
+				}));
+				menu->addChild(createMenuItem("-11 (Major 7th)", "", [module]() { 
+					module->shiftNotes(-11);
+				}));
+				menu->addChild(createMenuItem("-12 (Perfect Octave)", "", [module]() { 
+					module->shiftNotes(-12);
 				}));
 			}
 		));
