@@ -113,5 +113,5 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: _artifacts/**/*.vcvplugin
-          tag: ${{ env.gitrev }}
+          tag: ${{ env.releasename }}
           file_glob: true
