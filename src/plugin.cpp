@@ -8,8 +8,6 @@ void init(Plugin* p) {
 	pluginInstance = p;
 
 	// Add modules here
-	p->addModel(modelChordVault_P1);
-	p->addModel(modelChordVault_P2);
 	p->addModel(modelChordVault);
 
 	// Any other plugin initialization may go here.
