@@ -115,3 +115,4 @@ jobs:
           file: _artifacts/**/*.vcvplugin
           tag: ${{ env.releasename }}
           file_glob: true
+          prerelease: true

@@ -744,16 +744,18 @@ struct ChordVaultWidget : ModuleWidget {
 		void step() override {
 			LargeKnobWithRange::step();
 
-			auto _module = static_cast<ChordVault*>(this->module);
-			int start_index = _module->seqStart;
-			int end_index = start_index + _module->seqLength;
+			if(module){
+				auto _module = static_cast<ChordVault*>(this->module);
+				int start_index = _module->seqStart;
+				int end_index = start_index + _module->seqLength;
 
-			if(prev_start_index != start_index || prev_end_index != end_index){
-				prev_start_index = start_index;
-				prev_end_index = end_index;
-				float min = (float)start_index / VAULT_SIZE_MINUS_1;
-				float max = (float)end_index / VAULT_SIZE_MINUS_1;
-				updateRange(min,max);
+				if(prev_start_index != start_index || prev_end_index != end_index){
+					prev_start_index = start_index;
+					prev_end_index = end_index;
+					float min = (float)start_index / VAULT_SIZE_MINUS_1;
+					float max = (float)end_index / VAULT_SIZE_MINUS_1;
+					updateRange(min,max);
+				}
 			}
 		}
 
