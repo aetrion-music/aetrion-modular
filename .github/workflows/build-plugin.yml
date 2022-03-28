@@ -104,7 +104,7 @@ jobs:
           body: |
             ${{ env.GITHUB_REPOSITORY_NAME }} VCV Rack Plugin ${{ env.releasename }}
           draft: false
-          prerelease: false
+          prerelease: true
       - uses: actions/download-artifact@v2
         with:
           path: _artifacts
@@ -115,4 +115,3 @@ jobs:
           file: _artifacts/**/*.vcvplugin
           tag: ${{ env.releasename }}
           file_glob: true
-          prerelease: true
