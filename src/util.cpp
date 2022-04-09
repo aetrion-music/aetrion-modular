@@ -30,3 +30,13 @@ void json_boolArray_value(json_t* jArray, bool * array, int length){
 		array[i] = json_is_true(json_array_get(jArray, i));
 	}
 }
+
+float mod_0_max(float val, float max){
+	int whole = std::floor(val/max);
+	return val - whole * max;
+}
+
+int mod_0_max(int val, int max){
+	int whole = std::floor((float)val/max);
+	return val - whole * max;
+}

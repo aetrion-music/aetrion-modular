@@ -36,6 +36,19 @@ static std::string PLAY_MODE_NAMES [PlayMode_MAX] = {
 	"Glide",
 };
 
+#define CVRange_MAX 2
+
+enum CVRange {
+	ZeroTo5V,
+	WhiteKeys,
+};
+
+static std::string CVRange_LABELS [CVRange_MAX] = {
+	"0 to 5V",
+	"White Keys",
+};
+
+
 #define A_NOTE -3/12.f
 #define As_NOTE -2/12.f
 #define B_NOTE -1/12.f
@@ -123,6 +136,8 @@ struct ChordVault : Module {
 	int stepSelect_previewGateTimer;
 	bool pingPongDir;
 	int activeChannels;
+	int prev_raw_note;
+	float prev_raw_note_rnd;
 
 	//Persisted
 
@@ -139,6 +154,7 @@ struct ChordVault : Module {
 	int shuffle_arr [VAULT_SIZE];
 
 	PlayMode playMode;
+	CVRange cvRange;
 
 	ChordVault() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -199,6 +215,8 @@ struct ChordVault : Module {
 		stepSelect_prev = 0;
 		stepSelect_previewGateTimer = 0;
 		pingPongDir = false;
+		prev_raw_note = 0;
+		prev_raw_note_rnd = 0.f;
 
 		memset(vault_cv, 0, sizeof vault_cv);
 		memset(vault_gate, 0, sizeof vault_gate);
@@ -209,6 +227,7 @@ struct ChordVault : Module {
 		startStepMode = false;
 		skipPartialClock = false;
 		playMode = (PlayMode)0;	
+		cvRange = CVRange::ZeroTo5V;
 		shuffle_index = 0;
 		for(int i = 0; i < VAULT_SIZE; i++) shuffle_arr[i] = i;
 
@@ -221,6 +240,7 @@ struct ChordVault : Module {
 		json_t *jobj = json_object();
 		json_object_set_new(jobj, "vault_pos", json_integer(vault_pos));
 		json_object_set_new(jobj, "playMode", json_integer(playMode));
+		json_object_set_new(jobj, "cvRange", json_integer(cvRange));
 		json_object_set_new(jobj, "channels", json_integer(channels));		
 		json_object_set_new(jobj, "shuffle_index", json_integer(shuffle_index));
 		json_object_set_new(jobj, "recording", json_bool(recording));
@@ -249,6 +269,7 @@ struct ChordVault : Module {
 	void dataFromJson(json_t *jobj) override {
 		setVaultPos(json_integer_value(json_object_get(jobj, "vault_pos")));
 		playMode = (PlayMode)json_integer_value(json_object_get(jobj, "playMode"));
+		cvRange = (CVRange)json_integer_value(json_object_get(jobj, "cvRange"));
 		channels = json_integer_value(json_object_get(jobj, "channels"));
 		shuffle_index = json_integer_value(json_object_get(jobj, "shuffle_index"));
 		recording = json_is_true(json_object_get(jobj, "recording"));
@@ -613,12 +634,14 @@ struct ChordVault : Module {
 			//Secret Modes
 			case SKIP:{
 				//Chance of skipping a Chord, 20% by default but can be set by the CV_IN_INPUT
+				int newPos = vault_pos;
 				if(rack::random::uniform() < inputs[STEP_CV_INPUT].getNormalVoltage(2.f) / 10.f){
-					setVaultPos(vault_pos+2);
+					newPos += 2;
 				}else{
-					setVaultPos(vault_pos+1);
+					newPos += 1;
 				}
-				while(vault_pos >= seqLength+seqStart) vault_pos -= (seqLength);
+				while(newPos >= seqLength+seqStart) newPos -= (seqLength);
+				setVaultPos(newPos);
 				}break;
 
 			case PING_PONG:{
@@ -662,7 +685,7 @@ struct ChordVault : Module {
 	}
 
 	int getCV_vault_pos(){
-		int newPos = inputs[STEP_CV_INPUT].getVoltage() / 5.01f * seqLength;
+		int newPos = getCVInputValue(seqLength);
 		while(newPos < 0) newPos += seqLength;
 		while(newPos >= seqLength) newPos -= seqLength; 
 		return seqStart + newPos;
@@ -671,11 +694,64 @@ struct ChordVault : Module {
 	int getSeqStartPos(bool includeCV){
 		int newPos = params[STEP_KNOB_PARAM].getValue();
 		if(includeCV){
-			newPos += inputs[STEP_CV_INPUT].getVoltage() / 5.01f * VAULT_SIZE;
+			newPos += getCVInputValue(VAULT_SIZE);
 		}
 		while(newPos < 0) newPos += VAULT_SIZE;
 		while(newPos >= VAULT_SIZE) newPos -= VAULT_SIZE; 
 		return newPos;
+	}
+
+	float getCVInputValue(int maxStep){
+		switch(cvRange){
+			default:
+			case ZeroTo5V:
+				return inputs[STEP_CV_INPUT].getVoltage() / 5.01f * maxStep;
+			case WhiteKeys:
+				//White Number 0, 2, 4, 5, 7, 9, 11
+				int raw_note = std::round(inputs[STEP_CV_INPUT].getVoltage() * 12.f);
+				int note = mod_0_max(raw_note,12);
+				int octave = (raw_note - note) / 12;
+
+				int step;
+
+				switch(note){
+					default:
+					case 0: step = 0; break;
+					case 2: step = 1; break;
+					case 4: step = 2; break;
+					case 5: step = 3; break;
+					case 7: step = 4; break;
+					case 9: step = 5; break;
+					case 11: step = 6; break;
+
+					case 1: step = getWhiteKeyRandom(raw_note) < 0.5f ? 0 : 1; break;
+					case 3: step = getWhiteKeyRandom(raw_note) < 0.5f ? 1 : 2; break;
+
+					case 6: step = getWhiteKeyRandom(raw_note) < 0.5f ? 3 : 4; break;
+					case 8: step = getWhiteKeyRandom(raw_note) < 0.5f ? 4 : 5; break;
+					case 10: step = getWhiteKeyRandom(raw_note) < 0.5f ? 5 : 6; break;
+				}
+
+				int raw_step = octave * 7 + step;
+
+				DEBUG("raw_note:%i note:%i octave:%i step:%i, raw_step:%i",raw_note,note,octave,step,raw_step);
+
+				return mod_0_max(raw_step, maxStep);
+		}
+	}
+
+	float getWhiteKeyRandom(int raw_note){
+		if(playMode == GLIDE){
+			//In glide mode we will hold the same random value until the raw note changes
+			if(raw_note != prev_raw_note){
+				prev_raw_note = raw_note;
+				prev_raw_note_rnd = rack::random::uniform();
+			}
+			return prev_raw_note_rnd;
+		}else{
+			//In every other mode we only check when the clock hits so we will just make a new random value every time
+			return rack::random::uniform();
+		}
 	}
 
 	void updatePlayModeLights(){
@@ -747,7 +823,7 @@ struct ChordVaultWidget : ModuleWidget {
 			if(module){
 				auto _module = static_cast<ChordVault*>(this->module);
 				int start_index = _module->seqStart;
-				int end_index = start_index + _module->seqLength;
+				int end_index = start_index + _module->seqLength - 1;
 
 				if(prev_start_index != start_index || prev_end_index != end_index){
 					prev_start_index = start_index;
@@ -932,6 +1008,16 @@ struct ChordVaultWidget : ModuleWidget {
 				menu->addChild(createMenuItem("Yes", CHECKMARK(module->skipPartialClock == true), [module]() { 
 					module->skipPartialClock = true;
 				}));
+			}
+		));
+
+		menu->addChild(createSubmenuItem("CV Range", CVRange_LABELS[module->cvRange],
+			[=](Menu* menu) {
+				for(int i = 0; i < CVRange_MAX; i++){
+					menu->addChild(createMenuItem(CVRange_LABELS[i], CHECKMARK(module->cvRange == i), [module,i]() { 
+						module->cvRange = (CVRange)i;
+					}));
+				}
 			}
 		));
 
