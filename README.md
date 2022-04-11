@@ -1,5 +1,10 @@
 # aetrion-modular
-aetrion vcv modules
+aetrion VCV Rack modules
+
+## Chord Vault
+A flexible note and chord sequencer with a twist.
+
+
 
 ## License
 
