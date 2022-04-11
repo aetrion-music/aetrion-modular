@@ -4,7 +4,7 @@ aetrion VCV Rack modules
 ## Chord Vault
 A flexible note and chord sequencer with a twist.
 
-![Image of Chord Vault module](https://github.com/aetrion-music/aetrion-modular/blob/main/images/ChordVault_Panel.png)
+![Image of Chord Vault module](https://github.com/aetrion-music/aetrion-modular/blob/main/images/Chord%20Vault%20Manual%20Numbered%20Panel.png)
 
 ## License
 
