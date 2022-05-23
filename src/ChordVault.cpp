@@ -734,8 +734,6 @@ struct ChordVault : Module {
 
 				int raw_step = octave * 7 + step;
 
-				DEBUG("raw_note:%i note:%i octave:%i step:%i, raw_step:%i",raw_note,note,octave,step,raw_step);
-
 				return mod_0_max(raw_step, maxStep);
 		}
 	}
