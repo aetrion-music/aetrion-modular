@@ -26,7 +26,7 @@ Note that the default polyphony is set to 5 (can be changed in right click menu)
 ## Panel
 
 ![Image of Chord Vault controls](../images/chordvault_controls.png)
-![Image of Chord Vault module](../images/Chord%20Vault%20Manual%20Numbered%20Panel.png)
+![Image of Chord Vault module](./images/Chord%20Vault%20Manual%20Numbered%20Panel.png)
 
 1. **REC / PLAY State:** Switches between both states, with REC being used to input notes and PLAY turning on the sequencer (if a clock signal is present)
 - REC Status behavior: as long as gate is high, all notes played are recorded into the current step (up to max. number of poly channels defined), the module auto advances to the next step when gate is low.
