@@ -29,10 +29,10 @@ Note that the default polyphony is set to 5 (can be changed in right click menu)
 ![Image of Chord Vault module](./images/Chord%20Vault%20Manual%20Numbered%20Panel.png)
 
 1. **REC / PLAY State:** Switches between both states, with REC being used to input notes and PLAY turning on the sequencer (if a clock signal is present)
-- REC Status behavior: as long as gate is high, all notes played are recorded into the current step (up to max. number of poly channels defined), the module auto advances to the next step when gate is low.
-- PLAY Status behavior: when CLOCK is unpatched or not running you can manually go through each step by turning the STEP knob
+	- REC Status behavior: as long as gate is high, all notes played are recorded into the current step (up to max. number of poly channels defined), the module auto advances to the next step when gate is low.
+	- PLAY Status behavior: when CLOCK is unpatched or not running you can manually go through each step by turning the STEP knob
 2. **STEP knob and display:** display shows currently selected or active step, knob automatically moves to further indicate the current step.
-- STEP knob behavior: manually select a step in REC status to record into it (or replace step content), manually select a step to audtion steps (works in PLAY mode too when clock is stopped)
+	- STEP knob behavior: manually select a step in REC status to record into it (or replace step content), manually select a step to audition steps (works in PLAY mode too when clock is stopped)
 3. **STEP CV input:** Used exclusively with the corresponding SEQ Mode "CV" to change step number based on CV input (0-5V default, see SEQ mode list below)
 4. **SEQ button and LEDs:** cycles through different SEQ modes (explained below), LED shows currently active mode
 5. **LENGTH knob and display:** display shows currently selected length, knob manually selects a sequence length independent of how many steps have content recorded into them
@@ -45,21 +45,21 @@ Note that the default polyphony is set to 5 (can be changed in right click menu)
 12. **V/OCT Output:** - Polyphonic CV (1V/Oct) output with notes ordered from low to high. If you have a chord that doesn't use all poly channels, notes from the previous chords may be carrying over to help with longer env release times (not cutting notes off).
 
 ## SEQUENCE MODES
-*Notice that step selection is **always dependend on the sequence length** set by the length knob (or length cv).*
+*Notice that step selection is **always dependent on the sequence length** set by the length knob (or length cv).*
 
 ### Default Modes (blue led)
-1. **Forward ( > )** - plays steps in regular order (low to high numbers)
-2. **Backward ( < )** - plays steps in reverse order (high to low numbers)
-3. **Random ( RND )** - randomized step selection (without step repeats)
-4. **CV Control ( CV )** - special mode that let's you select steps via CV. Needs a **CV input signal** patched to the jack and uses unipolar 0-5V range to select from steps *with respect to the seq length*. 
+1. **Forward ( > )** - Plays steps in regular order (low to high numbers).
+2. **Backward ( < )** - Plays steps in reverse order (high to low numbers).
+3. **Random ( RND )** - Pandomized step selection (without step repeats).
+4. **CV Control ( CV )** - Special mode that let's you select steps via CV. Needs a **CV input signal** patched to the jack and uses unipolar 0-5V range to select from steps *with respect to the seq length*. 
 **CV Control clock behavior:** Sample & Hold, so you may retrigger a current step with an additional clock pulse, while step CV input is unchanged. Changes in step CV input are sent to output "together" with the clock. 
 ### Special Modes (pink led)
-These are accessible by pressing SEQ button for 2 seconds, or using the right click menu (which also shows their full names).
+Press and hold the SEQ button for 1 second to access these modes. You can also access them using the right click menu which also shows their full names.
 
-5. **Skip ( > )** - plays steps in regular order but randomnly skips a step
-6. **PingPong ( < )** - plays steps in regular order and then backwards in reverse order, without repeating the first or last step
-7. **Shuffle ( RND )** - randomized step selection, but selects a new step (that hasn't been played) until every step has been selected once and then starts over.
-8. **Glide ( CV )** - same as CV Control, but V/Oct output sends out pitch changes immediately while gate is high, without waiting for the next clock.
+5. **Skip ( > )** - Plays steps in regular order but randomly skips a step. Chance to skip is controlled by STEP CV input. With a range of 0-10V for 0-100% chance. If no cable is patched to Step CV input, the module has a 20% chance to skip a step.
+6. **PingPong ( < )** - Plays steps in regular order and then backwards in reverse order, without repeating the first or last step.
+7. **Shuffle ( RND )** - Randomized step selection, but selects a new step (that hasn't been played) until every step has been selected once and then starts over.
+8. **Glide ( CV )** - Same as CV Control, but V/Oct output sends out pitch changes immediately while gate is high, without waiting for the next clock.
 
 
 
@@ -101,4 +101,5 @@ The aetrion brand and logo are copyright (c) 2022 Mirko Melcher (m@aetrion-music
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-All **graphics**, other than the aetrion logo, in the `res` and `res_src` directory are copyright © 2022 Mirko Melcher (m@aetrion-music.com) and licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/).
+All **graphics** in the `res` and `res_src` directory are copyright © 2022 Mirko Melcher (m@aetrion-music.com).
+All **graphics** in the `res` and `res_src`, other than the aetrion logo, are licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/).
