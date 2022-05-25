@@ -50,7 +50,7 @@ Note that the default polyphony is set to 5 (can be changed in right click menu)
 ### Default Modes (blue led)
 1. **Forward ( > )** - Plays steps in regular order (low to high numbers).
 2. **Backward ( < )** - Plays steps in reverse order (high to low numbers).
-3. **Random ( RND )** - Pandomized step selection (without step repeats).
+3. **Random ( RND )** - Randomized step selection (without step repeats).
 4. **CV Control ( CV )** - Special mode that let's you select steps via CV. Needs a **CV input signal** patched to the jack and uses unipolar 0-5V range to select from steps *with respect to the seq length*. 
 **CV Control clock behavior:** Sample & Hold, so you may retrigger a current step with an additional clock pulse, while step CV input is unchanged. Changes in step CV input are sent to output "together" with the clock. 
 ### Special Modes (pink led)
