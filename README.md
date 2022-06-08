@@ -37,8 +37,8 @@ Note that the default polyphony is set to 5 (can be changed in right click menu)
 4. **SEQ button and LEDs:** cycles through different SEQ modes (explained below), LED shows currently active mode
 5. **LENGTH knob and display:** display shows currently selected length, knob manually selects a sequence length independent of how many steps have content recorded into them
 6. **LENGTH CV input:** change sequence length via CV (0-5V default, with 0V being 1 step and 5 being 16 steps seq length)
-7. **RESET Button and input:** Resets the sequencer to the first step (which may not be step 1 depending on SEQ mode), input uses trigger or gate (xV???)
-8. **GATE input:** Polyphonic gate input, number of channels needs to match number of max. polyphony channels used in ChordVault or you'll not get all notes into the step as expected. if you have a mono gate, use a module like (BOGAUDIO MODULE) to "duplicate" the gate across the correct number of channels. Incoming gate length should be 1ms or more, but is not relevant to playback (see clock input)
+7. **RESET Button and input:** Resets the sequencer to the first step (which may not be step 1 depending on SEQ mode), input uses trigger or gate
+8. **GATE input:** Polyphonic gate input, number of channels needs to match number of polyphony channels set in ChordVault (Right-Click Menu) or you'll not get all notes into the step as expected. if you have a mono gate, use a module like ![BOGAUDIO POLYMULT](https://library.vcvrack.com/Bogaudio/Bogaudio-PolyMult) to "duplicate" the gate across the correct number of channels. Incoming gate length should be 1ms or more, but is not relevant to playback (see clock input)
 9. **V/OCT input:** Polyphonic CV (1V/Oct) input, records incoming CV while gate input is high 
 10. **CLOCK Input:** Advances the sequencer to the "next" step or retriggers gate for current step (depending on SEQ mode), clock is only active in PLAY status
 11. **Gate Output:** Polyphonic Gate signal to attach to a voice or envelope generator. Gate length is dependent of clock pulse length (play around, gate is high as long as clock input is high)
