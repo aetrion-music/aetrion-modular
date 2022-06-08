@@ -29,7 +29,7 @@ static std::string PLAY_MODE_NAMES [PlayMode_MAX] = {
 	"Forward",
 	"Backward",
 	"Random",
-	"CV Controled",
+	"CV Control",
 	"Skip",
 	"Ping Pong",
 	"Shuffle",
@@ -948,7 +948,7 @@ struct ChordVaultWidget : ModuleWidget {
 		menu->addChild(new MenuEntry); //Blank Row
 		menu->addChild(createMenuLabel("Chord Vault"));
 		
-		menu->addChild(createSubmenuItem("Squence Mode", PLAY_MODE_NAMES[module->playMode],
+		menu->addChild(createSubmenuItem("SEQ Mode", PLAY_MODE_NAMES[module->playMode],
 			[=](Menu* menu) {
 				for(int i = 0; i < PlayMode_MAX; i++){
 					menu->addChild(createMenuItem(PLAY_MODE_NAMES[i], CHECKMARK(module->playMode == i), [module,i]() { 
@@ -959,7 +959,7 @@ struct ChordVaultWidget : ModuleWidget {
 			}
 		));
 
-		menu->addChild(createSubmenuItem("Max Polyphony channels", std::to_string(module->channels),
+		menu->addChild(createSubmenuItem("Polyphony channels", std::to_string(module->channels),
 			[=](Menu* menu) {
 				for(int i = 3; i <= CHANNEL_COUNT; i++){
 					menu->addChild(createMenuItem(std::to_string(i), CHECKMARK(module->channels == i), [module,i]() { 
@@ -970,9 +970,9 @@ struct ChordVaultWidget : ModuleWidget {
 			}
 		));
 
-		menu->addChild(createSubmenuItem("Dynamic Channels", module->dynamicChannels ? "Yes" : "No",
+		menu->addChild(createSubmenuItem("Dynamic Poly Channels", module->dynamicChannels ? "Yes" : "No",
 			[=](Menu* menu) {
-				menu->addChild(createMenuLabel("Change the number of output channels to match each chord?"));
+				menu->addChild(createMenuLabel("gate output channels match step polyphony));
 				menu->addChild(createMenuItem("No", CHECKMARK(module->dynamicChannels == false), [module]() { 
 					module->dynamicChannels = false;
 				}));
@@ -982,15 +982,15 @@ struct ChordVaultWidget : ModuleWidget {
 			}
 		));
 
-		menu->addChild(createSubmenuItem("Start Step", module->startStepMode ? "Yes" : "No",
+		menu->addChild(createSubmenuItem("Step Knob Offset Mode", module->startStepMode ? "Yes" : "No",
 			[=](Menu* menu) {
-				menu->addChild(createMenuLabel("Step Knob/CV adjust sequence start in Play Mode?"));
-				menu->addChild(createMenuItem("No", CHECKMARK(module->startStepMode == false), [module]() { 
+				menu->addChild(createMenuLabel("Step Knob/CV adjusts SEQ start"));
+				menu->addChild(createMenuItem("Off", CHECKMARK(module->startStepMode == false), [module]() { 
 					module->startStepMode = false;
 					module->seqStart = 0; //When leaving the mode reset the sequence offset/start back to 0
 					module->updatePlayModeLights();
 				}));
-				menu->addChild(createMenuItem("Yes", CHECKMARK(module->startStepMode == true), [module]() { 
+				menu->addChild(createMenuItem("On", CHECKMARK(module->startStepMode == true), [module]() { 
 					module->startStepMode = true;
 					module->updatePlayModeLights();
 				}));
@@ -999,7 +999,7 @@ struct ChordVaultWidget : ModuleWidget {
 
 		menu->addChild(createSubmenuItem("Skip Partial Clock", module->skipPartialClock ? "Yes" : "No",
 			[=](Menu* menu) {
-				menu->addChild(createMenuLabel("Skip the first partial clock after reset/entering play mode?"));
+				menu->addChild(createMenuLabel("Skip the first partial clock after reset/play"));
 				menu->addChild(createMenuItem("No", CHECKMARK(module->skipPartialClock == false), [module]() { 
 					module->skipPartialClock = false;
 				}));
@@ -1009,7 +1009,7 @@ struct ChordVaultWidget : ModuleWidget {
 			}
 		));
 
-		menu->addChild(createSubmenuItem("CV Range", CVRange_LABELS[module->cvRange],
+		menu->addChild(createSubmenuItem("Step CV Range", CVRange_LABELS[module->cvRange],
 			[=](Menu* menu) {
 				for(int i = 0; i < CVRange_MAX; i++){
 					menu->addChild(createMenuItem(CVRange_LABELS[i], CHECKMARK(module->cvRange == i), [module,i]() { 
@@ -1019,9 +1019,9 @@ struct ChordVaultWidget : ModuleWidget {
 			}
 		));
 
-		menu->addChild(createSubmenuItem("Shift Notes", "",
+		menu->addChild(createSubmenuItem("Transpose SEQ", "",
 			[=](Menu* menu) {
-				menu->addChild(createMenuLabel("Shift all notes by X Semitones"));
+				menu->addChild(createMenuLabel("Transpose all notes by semitones"));
 				menu->addChild(createMenuItem("+12 (Perfect Octave)", "", [module]() { 
 					module->shiftNotes(+12);
 				}));
