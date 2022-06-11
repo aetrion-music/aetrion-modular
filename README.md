@@ -65,11 +65,13 @@ Press and hold the SEQ button for 1 second to access these modes. You can also a
 
 ## Right Click Menu Options & Advanced Features
 
-**option** - description
-
-### Advanced Features
-
-**Step Knob CV start point offset** - description
+**SEQ Mode** - provides an alternative way to change sequence modes by directly selecting the desired mode.
+**Poly Channels** - changes the number of notes (maximum polyphony channels) each step can store (default = 5)
+**Dynamic Poly Channels** - changes the output of the gate output so that each step will...
+**Step Knob Offset Mode** - note that the step knob no longer "animates" so you can easily change the offset during playback.
+**Skip partial clock** - ...
+**Step CV Range** - changes the range for the CV input of the step knob. Default is 0-5V. For "easy" sequencing of steps via a note sequencer module, use the option "white keys only". Note C corresponds to Step 1, D to step 2 and so on.
+**Note Pitch Transpose** - transposes all notes of all steps via up/down semitone selection
 
 
 ### Bypass
