@@ -982,7 +982,7 @@ struct ChordVaultWidget : ModuleWidget {
 			}
 		));
 
-		menu->addChild(createSubmenuItem("Step Knob Offset Mode", module->startStepMode ? "Yes" : "No",
+		menu->addChild(createSubmenuItem("Step Knob Offset Mode", module->startStepMode ? "On" : "Off",
 			[=](Menu* menu) {
 				menu->addChild(createMenuLabel("Step Knob/CV adjusts SEQ start"));
 				menu->addChild(createMenuItem("Off", CHECKMARK(module->startStepMode == false), [module]() { 
