@@ -972,7 +972,7 @@ struct ChordVaultWidget : ModuleWidget {
 
 		menu->addChild(createSubmenuItem("Dynamic Poly Channels", module->dynamicChannels ? "Yes" : "No",
 			[=](Menu* menu) {
-				menu->addChild(createMenuLabel("gate output channels match step polyphony));
+				menu->addChild(createMenuLabel("gate output channels match step polyphony"));
 				menu->addChild(createMenuItem("No", CHECKMARK(module->dynamicChannels == false), [module]() { 
 					module->dynamicChannels = false;
 				}));
