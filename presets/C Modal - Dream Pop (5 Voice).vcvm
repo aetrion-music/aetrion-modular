@@ -1,0 +1,410 @@
+{
+  "plugin": "AetrionModular",
+  "model": "ChordVault",
+  "version": "2.0.0-f7644c1",
+  "params": [
+    {
+      "value": 0.0,
+      "id": 0
+    },
+    {
+      "value": 0.0,
+      "id": 1
+    },
+    {
+      "value": 7.0,
+      "id": 2
+    },
+    {
+      "value": 0.0,
+      "id": 3
+    },
+    {
+      "value": 0.0,
+      "id": 4
+    }
+  ],
+  "data": {
+    "vault_pos": 0,
+    "playMode": 0,
+    "cvRange": 0,
+    "channels": 5,
+    "shuffle_index": 0,
+    "recording": true,
+    "dynamicChannels": false,
+    "startStepMode": false,
+    "skipPartialClock": false,
+    "vault": [
+      {
+        "cv": [
+          -0.91666650772094727,
+          -0.33333301544189453,
+          0.0,
+          0.41666698455810547,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          -1.0,
+          -0.41666650772094727,
+          0.0,
+          0.33333349227905273,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          -0.75,
+          -0.16666650772094727,
+          0.0,
+          0.58333349227905273,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          -0.91666650772094727,
+          -0.33333301544189453,
+          0.0,
+          0.41666698455810547,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          -1.3333332538604736,
+          -0.33333301544189453,
+          0.0,
+          0.58333349227905273,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          -1.9166665077209473,
+          -0.91666650772094727,
+          0.0,
+          0.41666698455810547,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          -2.0,
+          -1.0,
+          0.0,
+          0.33333349227905273,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "cv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "gate": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    ],
+    "shuffle_arr": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ]
+  }
+}
