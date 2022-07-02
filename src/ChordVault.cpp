@@ -286,6 +286,9 @@ struct ChordVault : Module {
 			json_boolArray_value(json_object_get(vaultRowJ,"gate"),vault_gate[vi],CHANNEL_COUNT);
 			shuffle_arr[vi] = json_integer_value(json_array_get(shuffle_arrJ,vi));
 		}
+
+		//Set this to update the light after loading
+		firstProcess = true;
 	}
 
 	void process(const ProcessArgs& args) override {
