@@ -30,7 +30,7 @@
     "cvRange": 0,
     "channels": 5,
     "shuffle_index": 0,
-    "recording": true,
+    "recording": false,
     "dynamicChannels": false,
     "startStepMode": false,
     "skipPartialClock": false,
