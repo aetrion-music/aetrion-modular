@@ -73,7 +73,7 @@ Press and hold the SEQ button for 1 second to access these modes. You can also a
 
 **Step Knob Offset Mode** - note that the step knob no longer "animates" so you can easily change the offset during playback.
 
-**Skip partial clock** - ...
+**Skip partial clock** - Changes clock behavior. if set to "yes" any change in step or gate out is "delayed" until the next full clock. relevant if you want to reset the sequence "locked to tempo".
 
 **Step CV Range** - changes the range for the CV input of the step knob. Default is 0-5V. For "easy" sequencing of steps via a note sequencer module, use
 the option "white keys only". Note C corresponds to Step 1, D to step 2 and so on.
