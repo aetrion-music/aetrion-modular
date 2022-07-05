@@ -69,7 +69,7 @@ Press and hold the SEQ button for 1 second to access these modes. You can also a
 
 **Poly Channels** - changes the number of notes (maximum polyphony channels) each step can store (default = 5)
 
-**Dynamic Poly Channels** - changes the output of the gate output so that each step will...
+**Dynamic Poly Channels** - changes the number of poly channels of the gate output so that each step will reflekt the number of notes played into it. this is an experimental feature that may cause clicks and pops depending on the attached voice/adsr setup.
 
 **Step Knob Offset Mode** - note that the step knob no longer "animates" so you can easily change the offset during playback.
 
@@ -85,23 +85,13 @@ the option "white keys only". Note C corresponds to Step 1, D to step 2 and so o
 
 When ChordVault is bypassed all outputs stay at 0V.
 
-## Patch Examples
+## Tips and Tricks
 
-### EXAMPLE 1
+1. Use SEQ Mode "CV Control" to change the steps. Use the CLOCK input with a different (gate) sequencer to have the chords play rhythmically.
+2. Use the module as a monophonic sequencer ie. by patching in random quantized voltage or CV from a shift register. Try out the different sequencer modes.
 
-![Image of Example 1](../images/example_1.png)
 
-[Download Example 1](../examples/ChordVault_Example1.vcvs?raw=true)
-
-In this example...
-
-### EXAMPLE 2
-
-![Image of Example 2](../images/example_2.png)
-
-[Download Example 2](../examples/ChordVault_Example2.vcvs?raw=true)
-
-In this example...
+## Patch Examples (Coming Soon)
 
 
 ## License
