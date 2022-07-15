@@ -2,7 +2,7 @@
 aetrion VCV Rack modules
 
 # Chord Vault
-![Image of Chord Vault module](../images/ChordVault_Panel.png)
+![Image of Chord Vault module](./images/ChordVault_Panel.png)
 
 Chord Vault is a chord sequencer with a little twist.
 Record polyphonic cv/gate pairs into up to 16 steps and choose from a one of 8 sequencing modes.
