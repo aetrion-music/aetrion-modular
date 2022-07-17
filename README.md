@@ -2,7 +2,7 @@
 aetrion VCV Rack modules
 
 # Chord Vault
-![Image of Chord Vault module](../images/ChordVault_Panel.png)
+![Image of Chord Vault module](./images/ChordVault_Panel.png)
 
 Chord Vault is a chord sequencer with a little twist.
 Record polyphonic cv/gate pairs into up to 16 steps and choose from a one of 8 sequencing modes.
@@ -10,10 +10,12 @@ Its main purpose is to be an easy way for playing chords on a midi keyboard and 
 But of course you can hook up anything that sends gates and cv.
 
 ## Quick Start
+![Image of Chord Vault module](./images/ChordVault_QuickStart.png)
+
 This quick example shows the **basic routing** for polyphonic note input from a midi keyboard. If you understand this basic concept you can of course work without midi input.
 Note that the default polyphony is set to 5 (can be changed in right click menu).
 
-[Download Quick Start](../examples/ChordVault_QuickStart.vcvs?raw=true)
+[Download Quick Start](./examples/ChordVault_QuickStart.vcv?raw=true)
 
 1. Make sure the module is in RECORD State (**REC**, top button).
 2. Play a chord. You'll hear it while keys are pressed. Notice how the module auto advances to the next step once you let go of the keys (step number increases by one).
@@ -25,7 +27,6 @@ Note that the default polyphony is set to 5 (can be changed in right click menu)
 
 ## Panel
 
-![Image of Chord Vault controls](../images/chordvault_controls.png)
 ![Image of Chord Vault module](./images/Chord%20Vault%20Manual%20Numbered%20Panel.png)
 
 1. **REC / PLAY State:** Switches between both states, with REC being used to input notes and PLAY turning on the sequencer (if a clock signal is present)
@@ -91,7 +92,17 @@ When ChordVault is bypassed all outputs stay at 0V.
 2. Use the module as a monophonic sequencer ie. by patching in random quantized voltage or CV from a shift register. Try out the different sequencer modes.
 
 
-## Patch Examples (Coming Soon)
+## Patch Examples
+
+### Pad with Arpeggiator
+
+![Image of Chord Vault module](./images/ChordVault_Example_1_Pad_Arp.png)
+[Download Quick Start](./examples/ChordVault_Example_1_Pad_Arp.vcv?raw=true)
+
+### Clocked Rhythm
+
+![Image of Chord Vault module](./images/ChordVault_Example_2_Clocked_Rhythm.png)
+[Download Quick Start](./examples/ChordVault_Example_2_Clocked_Rhythm.vcv?raw=true)
 
 
 ## License
