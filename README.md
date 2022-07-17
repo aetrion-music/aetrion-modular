@@ -11,11 +11,10 @@ But of course you can hook up anything that sends gates and cv.
 
 ## Quick Start
 ![Image of Chord Vault module](./images/ChordVault_QuickStart.png)
+[Download Quick Start](./examples/ChordVault_QuickStart.vcv?raw=true)
 
 This quick example shows the **basic routing** for polyphonic note input from a midi keyboard. If you understand this basic concept you can of course work without midi input.
 Note that the default polyphony is set to 5 (can be changed in right click menu).
-
-[Download Quick Start](./examples/ChordVault_QuickStart.vcv?raw=true)
 
 1. Make sure the module is in RECORD State (**REC**, top button).
 2. Play a chord. You'll hear it while keys are pressed. Notice how the module auto advances to the next step once you let go of the keys (step number increases by one).
@@ -96,13 +95,13 @@ When ChordVault is bypassed all outputs stay at 0V.
 
 ### Pad with Arpeggiator
 
-![Image of Chord Vault module](./images/ChordVault_Example_1_Pad_Arp.png)
-[Download Quick Start](./examples/ChordVault_Example_1_Pad_Arp.vcv?raw=true)
+![Image of Example 1](./images/ChordVault_Example_1_Pad_Arp.png)
+[Download Example 1](./examples/ChordVault_Example_1_Pad_Arp.vcv?raw=true)
 
 ### Clocked Rhythm
 
-![Image of Chord Vault module](./images/ChordVault_Example_2_Clocked_Rhythm.png)
-[Download Quick Start](./examples/ChordVault_Example_2_Clocked_Rhythm.vcv?raw=true)
+![Image of Example 2](./images/ChordVault_Example_2_Clocked_Rhythm.png)
+[Download Example 1](./examples/ChordVault_Example_2_Clocked_Rhythm.vcv?raw=true)
 
 
 ## License
