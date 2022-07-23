@@ -7,7 +7,7 @@ aetrion VCV Rack modules
 Chord Vault is a chord sequencer with a little twist.
 Record polyphonic cv/gate pairs into up to 16 steps and choose from a one of 8 sequencing modes.
 Its main purpose is to be an easy way for playing chords on a midi keyboard and "saving" the notes for playback.
-But of course you can hook up anything that sends gates and cv.
+But of course you can hook up anything that sends gates and cv. Or just use one of the presets as a shortcut.
 
 ## Quick Start
 ![Image of Chord Vault module](./images/ChordVault_QuickStart.png)
