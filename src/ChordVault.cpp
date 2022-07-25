@@ -176,8 +176,6 @@ struct ChordVault : Module {
 		configOutput(GATE_OUT_OUTPUT, "Gates");
 		configOutput(CV_OUT_OUTPUT, "V/octs");
 
-
-
 		initalize();
 	}
 
@@ -289,6 +287,12 @@ struct ChordVault : Module {
 
 		//Set this to update the light after loading
 		firstProcess = true;
+	}
+
+	void processBypass(const ProcessArgs& args) override{
+		//Even in bypass keep the number of output channels the same. This prevents clicking when connecte to some VCOs like Macro Oscillator 2
+		outputs[CV_OUT_OUTPUT].setChannels(activeChannels);
+		outputs[GATE_OUT_OUTPUT].setChannels(activeChannels);
 	}
 
 	void process(const ProcessArgs& args) override {
