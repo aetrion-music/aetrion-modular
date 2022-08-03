@@ -16,7 +16,7 @@ But of course you can hook up anything that sends gates and cv. Or just use one 
 This quick example shows the **basic routing** for polyphonic note input from a midi keyboard. If you understand this basic concept you can of course work without midi input.
 Note that the default polyphony is set to 5 (can be changed in right click menu).
 
-1. Make sure the module is in RECORD State (**REC**, top button).
+1. Make sure the module is in RECORD State (**REC**, top left button).
 2. Play a chord. You'll hear it while keys are pressed. Notice how the module auto advances to the next step once you let go of the keys (step number increases by one).
 3. After you played in a few chords, switch module to PLAY state (**PLAY**, top button).
 4. Start the CLOCKED Module by pressing the run button
@@ -43,6 +43,7 @@ Note that the default polyphony is set to 5 (can be changed in right click menu)
 10. **CLOCK Input:** Advances the sequencer to the "next" step or retriggers gate for current step (depending on SEQ mode), clock is only active in PLAY status
 11. **Gate Output:** Polyphonic Gate signal to attach to a voice or envelope generator. Gate length is dependent of clock pulse length (fun to play around with, gate is high as long as clock input is high)
 12. **V/OCT Output:** - Polyphonic CV (1V/Oct) output with notes ordered from low to high. If you have a chord that doesn't use all poly channels, notes from the previous chords may be carrying over to help with longer env release times (not cutting notes off).
+13. **Offset Mode Button:** activates offset mode. change the first step in the sequence (range) by manually turning the step knob. note that the step knob no longer "animates" so you can easily change the offset during playback.
 
 ## SEQUENCE MODES
 *Notice that step selection is **always dependent on the sequence length** set by the length knob (or length cv).*
@@ -70,8 +71,6 @@ Press and hold the SEQ button for 1 second to access these modes. You can also a
 **Poly Channels** - changes the number of notes (maximum polyphony channels) each step can store (default = 5)
 
 **Dynamic Poly Channels** - changes the number of poly channels of the gate output so that each step will reflekt the number of notes played into it. this is an experimental feature that may cause clicks and pops depending on the attached voice/adsr setup.
-
-**Step Knob Offset Mode** - note that the step knob no longer "animates" so you can easily change the offset during playback.
 
 **Skip partial clock** - Changes clock behavior. if set to "yes" any change in step or gate out is "delayed" until the next full clock. relevant if you want to reset the sequence "locked to tempo".
 
