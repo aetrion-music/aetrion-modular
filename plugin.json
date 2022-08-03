@@ -17,7 +17,9 @@
       "slug": "ChordVault",
       "name": "ChordVault",
       "description": "Record polyphonic cv/gate pairs into up to 16 steps and choose from a one of 8 sequencing modes.",
-      "tags": ["Sequencer"]
+      "tags": [
+        "Sequencer"
+      ]
     }
   ]
 }

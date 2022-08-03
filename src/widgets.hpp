@@ -104,6 +104,12 @@ struct BlueRedLight : GrayModuleLightWidget {
 	}
 };
 
+struct AERedLight : GrayModuleLightWidget {
+	AERedLight() {
+		addBaseColor(SCHEME_RED_CUSTOM);
+	}
+};
+
 struct UnitPrefixQuanity : ParamQuantity  {
 	std::string getString() override {
 		std::string s;

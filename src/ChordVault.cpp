@@ -85,6 +85,7 @@ struct ChordVault : Module {
 		LENGTH_KNOB_PARAM,
 		RESET_BTN_PARAM,
 		PLAY_MODE_PARAM,
+		OFFSET_BTN_PARAM,
 		PARAMS_LEN
 	};
 	enum InputId {
@@ -108,6 +109,7 @@ struct ChordVault : Module {
 		ENUMS(PLAY_BACKWARD_LIGHT,2),
 		ENUMS(PLAY_RANDOM_LIGHT,2),
 		ENUMS(PLAY_CV_LIGHT,2),
+		OFFSET_LIGHT_LIGHT,
 		LIGHTS_LEN
 	};
 
@@ -127,6 +129,7 @@ struct ChordVault : Module {
 	bool clockHigh;
 	bool gatesHigh;
 	bool recordPlayBtnDown;
+	bool offsetBtnDown;
 	bool playModeBtnDown;
 	int playModeBtnDown_counter;
 	bool resetBtnDown;
@@ -164,6 +167,7 @@ struct ChordVault : Module {
 		configButton(RECORD_PLAY_BTN_PARAM, "Play/Record");
 		configParam(LENGTH_KNOB_PARAM, 1.f, 16.f, 4.f, "Step Length", " steps");
 		configButton(RESET_BTN_PARAM, "Reset");
+		configButton(OFFSET_BTN_PARAM, "Offset");
 		configButton<SeqModeQuantity>(PLAY_MODE_PARAM, "Sequence Mode");
 
 		configInput(STEP_CV_INPUT, "Step CV");
@@ -206,6 +210,7 @@ struct ChordVault : Module {
 		clockHigh = false;
 		gatesHigh = false;
 		recordPlayBtnDown = false;
+		offsetBtnDown = false;
 		playModeBtnDown = false;
 		playModeBtnDown_counter = 0;		
 		resetBtnDown = false;
@@ -332,6 +337,26 @@ struct ChordVault : Module {
 					sortAndClearCurrentCVs();
 				}
 			}
+		}
+
+		//Offset Mode
+		{
+			//Toggle Offset mode if Button is down
+			float btnValue = params[OFFSET_BTN_PARAM].getValue();
+			if(offsetBtnDown && btnValue <= 0){
+				offsetBtnDown = false;
+			}else if(!offsetBtnDown && btnValue > 0){
+				offsetBtnDown = true;
+				if(startStepMode){
+					startStepMode = false;
+					seqStart = 0; //When leaving the mode reset the sequence offset/start back to 0
+				}else{
+					startStepMode = true;
+				}
+			}
+
+			//Update Light
+			lights[OFFSET_LIGHT_LIGHT].setBrightness(startStepMode ? 1.f : 0.f);
 		}
 
 		//Seq Mode Button
@@ -904,19 +929,20 @@ struct ChordVaultWidget : ModuleWidget {
 
 		addParam(createParamCentered<RotarySwitch<CurStepKnob>>(mm2px(Vec(18.101, 34.556)), module, ChordVault::STEP_KNOB_PARAM));
 		addParam(createParamCentered<RotarySwitch<LargeKnob>>(mm2px(Vec(18.101, 70.424)), module, ChordVault::LENGTH_KNOB_PARAM));
-		addParam(createParamCentered<SmallButton>(mm2px(Vec(17.403, 16.274)), module, ChordVault::RECORD_PLAY_BTN_PARAM));		
-		addParam(createParamCentered<SmallButton>(mm2px(Vec(5.566, 85.815)), module, ChordVault::RESET_BTN_PARAM));
-		addParam(createParamCentered<SmallButton>(mm2px(Vec(5.566, 50.141)), module, ChordVault::PLAY_MODE_PARAM));
+		addParam(createParamCentered<SmallButton>(mm2px(Vec(8.374, 18.721)), module, ChordVault::RECORD_PLAY_BTN_PARAM));		
+		addParam(createParamCentered<SmallButton>(mm2px(Vec(5.798, 85.815)), module, ChordVault::RESET_BTN_PARAM));
+		addParam(createParamCentered<SmallButton>(mm2px(Vec(5.831, 50.141)), module, ChordVault::PLAY_MODE_PARAM));
+		addParam(createParamCentered<SmallButton>(mm2px(Vec(28.251, 18.721)), module, ChordVault::OFFSET_BTN_PARAM));
 
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.98, 34.111)), module, ChordVault::STEP_CV_INPUT));
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(5.648, 93.131)), module, ChordVault::RESET_INPUT));
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(5.648, 110.558)), module, ChordVault::CLOCK_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.583, 34.111)), module, ChordVault::STEP_CV_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(5.814, 93.131)), module, ChordVault::RESET_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(5.88, 110.558)), module, ChordVault::CLOCK_INPUT));
 		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(18.143, 93.131)), module, ChordVault::GATE_IN_INPUT));
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.98, 93.131)), module, ChordVault::CV_IN_INPUT));
-		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.98, 70.691)), module, ChordVault::LENGTH_CV_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.451, 93.131)), module, ChordVault::CV_IN_INPUT));
+		addInput(createInputCentered<aetrion::Port>(mm2px(Vec(29.451, 70.691)), module, ChordVault::LENGTH_CV_INPUT));
 
 		addOutput(createOutputCentered<aetrion::Port>(mm2px(Vec(18.061, 110.503)), module, ChordVault::GATE_OUT_OUTPUT));
-		addOutput(createOutputCentered<aetrion::Port>(mm2px(Vec(29.937, 110.503)), module, ChordVault::CV_OUT_OUTPUT));
+		addOutput(createOutputCentered<aetrion::Port>(mm2px(Vec(29.408, 110.503)), module, ChordVault::CV_OUT_OUTPUT));
 
 		// addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(10.991, 16.274)), module, ChordVault::RECORD_LIGHT_LIGHT));
 		// addChild(createLightCentered<TinyLight<BlueLight>>(mm2px(Vec(23.815, 16.274)), module, ChordVault::PLAY_LIGHT_LIGHT));
@@ -925,12 +951,13 @@ struct ChordVaultWidget : ModuleWidget {
 		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(21.48, 49.172)), module, ChordVault::PLAY_RANDOM_LIGHT));
 		// addChild(createLightCentered<TinyLight<BlueRedLight>>(mm2px(Vec(27.036, 49.172)), module, ChordVault::PLAY_CV_LIGHT));
 
-		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(11.991, 16.274)), module, ChordVault::RECORD_LIGHT_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(22.815, 16.274)), module, ChordVault::PLAY_LIGHT_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(10.334, 49.172)), module, ChordVault::PLAY_FORWARD_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(15.89, 49.171)), module, ChordVault::PLAY_BACKWARD_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(21.48, 49.172)), module, ChordVault::PLAY_RANDOM_LIGHT));
-		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(27.036, 49.172)), module, ChordVault::PLAY_CV_LIGHT));
+		addChild(createLightCentered<SmallLight<AERedLight>>(mm2px(Vec(3.98, 18.721)), module, ChordVault::RECORD_LIGHT_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(12.868, 18.721)), module, ChordVault::PLAY_LIGHT_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(10.466, 49.172)), module, ChordVault::PLAY_FORWARD_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(16.651, 49.171)), module, ChordVault::PLAY_BACKWARD_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(22.836, 49.172)), module, ChordVault::PLAY_RANDOM_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueRedLight>>(mm2px(Vec(29.02, 49.172)), module, ChordVault::PLAY_CV_LIGHT));
+		addChild(createLightCentered<SmallLight<BlueLight>>(mm2px(Vec(32.678, 18.721)), module, ChordVault::OFFSET_LIGHT_LIGHT));
 
 		{
 			CurStepDisplay* display = createWidget<CurStepDisplay>(mm2px(Vec(5.235, 32.974)));
