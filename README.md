@@ -10,7 +10,7 @@ Its main purpose is to be an easy way for playing chords on a midi keyboard and 
 But of course you can hook up anything that sends gates and cv. Or just use one of the presets as a shortcut.
 
 ## Quick Start
-![Image of Chord Vault module](./images/ChordVault_QuickStart.png)
+![Image of Chord Vault module](./images/ChordVault_Quickstart.png)
 [Download Quick Start](./examples/ChordVault_QuickStart.vcv?raw=true)
 
 This quick example shows the **basic routing** for polyphonic note input from a midi keyboard. If you understand this basic concept you can of course work without midi input.
