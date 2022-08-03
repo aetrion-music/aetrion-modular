@@ -86,7 +86,7 @@ When ChordVault is bypassed all outputs stay at 0V.
 
 ## Tips and Tricks
 
-1. Use SEQ Mode "CV Control" to change the steps. Use the CLOCK input with a different (gate) sequencer to have the chords play rhythmically.
+1. Use SEQ Mode "CV Control" to change the steps. Use the CLOCK input with a different (gate) sequencer to have the chords play rhythmically (see example 2).
 2. Use the module as a monophonic sequencer ie. by patching in random quantized voltage or CV from a shift register. Try out the different sequencer modes.
 
 
