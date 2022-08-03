@@ -42,7 +42,7 @@ Note that the default polyphony is set to 5 (can be changed in right click menu)
 9. **V/OCT input:** Polyphonic CV (1V/Oct) input, records incoming CV while gate input is high 
 10. **CLOCK Input:** Advances the sequencer to the "next" step or retriggers gate for current step (depending on SEQ mode), clock is only active in PLAY status
 11. **Gate Output:** Polyphonic Gate signal to attach to a voice or envelope generator. Gate length is dependent of clock pulse length (fun to play around with, gate is high as long as clock input is high)
-12. **V/OCT Output:** - Polyphonic CV (1V/Oct) output with notes ordered from low to high. If you have a chord that doesn't use all poly channels, notes from the previous chords may be carrying over to help with longer env release times (not cutting notes off).
+12. **V/OCT Output:** Polyphonic CV (1V/Oct) output with notes ordered from low to high. If you have a chord that doesn't use all poly channels, notes from the previous chords may be carrying over to help with longer env release times (not cutting notes off).
 13. **Offset Mode Button:** activates offset mode. change the first step in the sequence (range) by manually turning the step knob. note that the step knob no longer "animates" so you can easily change the offset during playback.
 
 ## SEQUENCE MODES
