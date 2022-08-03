@@ -94,7 +94,7 @@ When ChordVault is bypassed all outputs stay at 0V.
 
 ### Example 1 - Pad with Arpeggiator
 
-![Image of Example 1](./images/ChordVault_Example 1_Pad_Arp.png)
+![Image of Example 1](./images/ChordVault_Example_1_Pad_Arp.png)
 [Download Example 1](./examples/ChordVault_Example_1_Pad_Arp.vcv?raw=true)
 
 ### Example 2 - Clocked Rhythm
