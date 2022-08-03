@@ -99,7 +99,7 @@ When ChordVault is bypassed all outputs stay at 0V.
 
 ### Example 2 - Clocked Rhythm
 
-![Image of Example 2](./images/ChordVault_Example_2_Clocked Rhythm.png)
+![Image of Example 2](./images/ChordVault_Example_2_Clocked_Rhythm.png)
 [Download Example 2](./examples/ChordVault_Example_2_Clocked_Rhythm.vcv?raw=true)
 
 
