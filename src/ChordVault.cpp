@@ -307,12 +307,9 @@ struct ChordVault : Module {
 
 		if(firstProcess){
 			firstProcess = false;			
-
-			lights[RECORD_LIGHT_LIGHT].setBrightness(recording ? 1.f : 0.f);
-			lights[PLAY_LIGHT_LIGHT].setBrightness(recording ? 0.f : 1.f);
-
 			stepSelect_prev = (int)params[STEP_KNOB_PARAM].getValue();
 			updatePlayModeLights();
+			updateRecordModeLights();
 		}
 
 		//Toggle Recrod mode if Button is down
@@ -323,8 +320,7 @@ struct ChordVault : Module {
 			}else if(!recordPlayBtnDown && btnValue > 0){
 				recordPlayBtnDown = true;
 				recording = !recording;
-				lights[RECORD_LIGHT_LIGHT].setBrightness(recording ? 1.f : 0.f);
-				lights[PLAY_LIGHT_LIGHT].setBrightness(recording ? 0.f : 1.f);
+				updateRecordModeLights();
 
 				if(recording){
 					//When changing play -> record do NOT change the position
@@ -794,8 +790,13 @@ struct ChordVault : Module {
 		lights[PLAY_RANDOM_LIGHT + 0].setBrightness(playMode == RANDOM ? 1 : 0);
 		lights[PLAY_RANDOM_LIGHT + 1].setBrightness(playMode == SHUFFLE ? 1 : 0);
 
-		lights[PLAY_CV_LIGHT + 0].setBrightness(startStepMode || playMode == CV ? 1 : 0);
+		lights[PLAY_CV_LIGHT + 0].setBrightness(playMode == CV ? 1 : 0);
 		lights[PLAY_CV_LIGHT + 1].setBrightness(playMode == GLIDE ? 1 : 0);
+	}
+
+	void updateRecordModeLights(){
+		lights[RECORD_LIGHT_LIGHT].setBrightness(recording ? 1.f : 0.f);
+		lights[PLAY_LIGHT_LIGHT].setBrightness(recording ? 0.f : 1.f);
 	}
 
 	void sortAndClearCurrentCVs(){
@@ -982,6 +983,32 @@ struct ChordVaultWidget : ModuleWidget {
 		menu->addChild(new MenuEntry); //Blank Row
 		menu->addChild(createMenuLabel("Chord Vault"));
 		
+		menu->addChild(createSubmenuItem("Play Mode", module->recording ? "Record" : "Play",
+			[=](Menu* menu) {
+				menu->addChild(createMenuItem("Record", CHECKMARK(module->recording == true), [module]() { 
+					module->recording = true;
+					module->updateRecordModeLights();
+				}));
+				menu->addChild(createMenuItem("Play", CHECKMARK(module->recording == false), [module]() { 
+					module->recording = false;
+					module->updateRecordModeLights();
+				}));
+			}
+		));
+
+		menu->addChild(createSubmenuItem("Step Knob Offset Mode", module->startStepMode ? "On" : "Off",
+			[=](Menu* menu) {
+				menu->addChild(createMenuLabel("Step Knob/CV adjusts SEQ start"));
+				menu->addChild(createMenuItem("Off", CHECKMARK(module->startStepMode == false), [module]() { 
+					module->startStepMode = false;
+					module->seqStart = 0; //When leaving the mode reset the sequence offset/start back to 0
+				}));
+				menu->addChild(createMenuItem("On", CHECKMARK(module->startStepMode == true), [module]() { 
+					module->startStepMode = true;
+				}));
+			}
+		));
+
 		menu->addChild(createSubmenuItem("SEQ Mode", PLAY_MODE_NAMES[module->playMode],
 			[=](Menu* menu) {
 				for(int i = 0; i < PlayMode_MAX; i++){
@@ -992,6 +1019,8 @@ struct ChordVaultWidget : ModuleWidget {
 				}
 			}
 		));
+
+		menu->addChild(createMenuLabel("-- Extra --"));
 
 		menu->addChild(createSubmenuItem("Polyphony channels", std::to_string(module->channels),
 			[=](Menu* menu) {
@@ -1012,21 +1041,6 @@ struct ChordVaultWidget : ModuleWidget {
 				}));
 				menu->addChild(createMenuItem("Yes", CHECKMARK(module->dynamicChannels == true), [module]() { 
 					module->dynamicChannels = true;
-				}));
-			}
-		));
-
-		menu->addChild(createSubmenuItem("Step Knob Offset Mode", module->startStepMode ? "On" : "Off",
-			[=](Menu* menu) {
-				menu->addChild(createMenuLabel("Step Knob/CV adjusts SEQ start"));
-				menu->addChild(createMenuItem("Off", CHECKMARK(module->startStepMode == false), [module]() { 
-					module->startStepMode = false;
-					module->seqStart = 0; //When leaving the mode reset the sequence offset/start back to 0
-					module->updatePlayModeLights();
-				}));
-				menu->addChild(createMenuItem("On", CHECKMARK(module->startStepMode == true), [module]() { 
-					module->startStepMode = true;
-					module->updatePlayModeLights();
 				}));
 			}
 		));
