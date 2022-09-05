@@ -155,6 +155,7 @@ struct ChordVault : Module {
 	int playModeBtnDown_counter;
 	bool resetBtnDown;
 	bool resetTrigHigh;
+	float resetLockout;
 	bool partialPlayClock; //True for the first (partial) clock after going into play mode
 	int stepSelect_prev;
 	int stepSelect_previewGateTimer;
@@ -237,6 +238,7 @@ struct ChordVault : Module {
 		playModeBtnDown_counter = 0;		
 		resetBtnDown = false;
 		resetTrigHigh = false;
+		resetLockout = 0;
 		stepSelect_prev = 0;
 		stepSelect_previewGateTimer = 0;
 		pingPongDir = false;
@@ -465,8 +467,9 @@ struct ChordVault : Module {
 					resetTrigHigh = false;
 				}else if(!resetTrigHigh && triggerValue >= 2.0f){
 					resetTrigHigh = true;
-					resetEvent = true;
+					if(resetLockout <= 0) resetEvent = true;
 				}
+				if(resetLockout > 0) resetLockout -= args.sampleTime;
 			}
 
 			if(resetEvent){
@@ -486,6 +489,9 @@ struct ChordVault : Module {
 				clockHigh = false;
 			}else if(!clockHigh && clockValue >= 2.0f){
 				clockHigh = true;
+
+				//VCV Timing Standard
+				resetLockout = 0.001; //1ms lockout for accepting reset trigger
 
 				//If not recording, the advance the step here (on clock high)
 				if(!recording){
