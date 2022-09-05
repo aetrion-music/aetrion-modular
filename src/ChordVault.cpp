@@ -56,6 +56,19 @@ static int CVRange_Order[CVRange_MAX] = {
 	1, //White Keys
 };
 
+#define CVOrder_MAX 3
+
+enum CVOrder {
+	Sorted, //In this mode the CVs for low gates are removed and the CVs are sorted from lowest to highest
+	Condensed, //In this mode the CVs for low gates are removed
+	Pristine, //In this mode the CVs are left exactly as received
+};
+
+static std::string CVOrder_LABELS [CVOrder_MAX] = {
+	"Sorted",
+	"Condensed",
+	"Pristine",
+};
 
 #define A_NOTE -3/12.f
 #define As_NOTE -2/12.f
@@ -166,6 +179,7 @@ struct ChordVault : Module {
 
 	PlayMode playMode;
 	CVRange cvRange;
+	CVOrder cvOrder;
 
 	ChordVault() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -239,6 +253,7 @@ struct ChordVault : Module {
 		skipPartialClock = false;
 		playMode = (PlayMode)0;	
 		cvRange = CVRange::ZeroTo5V;
+		cvOrder = CVOrder::Sorted;
 		shuffle_index = 0;
 		for(int i = 0; i < VAULT_SIZE; i++) shuffle_arr[i] = i;
 
@@ -252,6 +267,7 @@ struct ChordVault : Module {
 		json_object_set_new(jobj, "vault_pos", json_integer(vault_pos));
 		json_object_set_new(jobj, "playMode", json_integer(playMode));
 		json_object_set_new(jobj, "cvRange", json_integer(cvRange));
+		json_object_set_new(jobj, "cvOrder", json_integer(cvOrder));
 		json_object_set_new(jobj, "channels", json_integer(channels));		
 		json_object_set_new(jobj, "shuffle_index", json_integer(shuffle_index));
 		json_object_set_new(jobj, "recording", json_bool(recording));
@@ -281,6 +297,7 @@ struct ChordVault : Module {
 		setVaultPos(json_integer_value(json_object_get(jobj, "vault_pos")));
 		playMode = (PlayMode)json_integer_value(json_object_get(jobj, "playMode"));
 		cvRange = (CVRange)json_integer_value(json_object_get(jobj, "cvRange"));
+		cvOrder = (CVOrder)json_integer_value(json_object_get(jobj, "cvOrder"));
 		channels = json_integer_value(json_object_get(jobj, "channels"));
 		shuffle_index = json_integer_value(json_object_get(jobj, "shuffle_index"));
 		recording = json_is_true(json_object_get(jobj, "recording"));
@@ -320,7 +337,7 @@ struct ChordVault : Module {
 			updateRecordModeLights();
 		}
 
-		//Toggle Recrod mode if Button is down
+		//Toggle Record mode if Button is down
 		{
 			float btnValue = params[RECORD_PLAY_BTN_PARAM].getValue();
 			if(recordPlayBtnDown && btnValue <= 0){
@@ -810,6 +827,9 @@ struct ChordVault : Module {
 	}
 
 	void sortAndClearCurrentCVs(){
+
+		if(cvOrder == CVOrder::Pristine) return;
+
 		float activeCVs [CHANNEL_COUNT];
 		int activeCV_count = 0;
 		auto cvs = vault_cv[getVaultPos()];
@@ -820,13 +840,17 @@ struct ChordVault : Module {
 				activeCV_count++;
 			}
 		}
-		std::sort(activeCVs, activeCVs + activeCV_count, std::less<float>());
-		activeCV_count = 0;
+		if(cvOrder == CVOrder::Sorted){
+			std::sort(activeCVs, activeCVs + activeCV_count, std::less<float>());
+		}
+		//Condense the active gates down to the lowest channels
 		for(int ci = 0; ci < channels; ci++){
-			if(gates[ci]){
-				cvs[ci] = activeCVs[activeCV_count];
-				activeCV_count++;
+			if(ci < activeCV_count){
+				gates[ci] = true;
+				cvs[ci] = activeCVs[ci];		
 			}else{
+				//Set the remaining gates low
+				gates[ci] = false;
 				//Clear any CVs on gates that are low
 				//Not strictly nessecary because those values won't get used
 				//But it just keeps the JSON clean
@@ -1073,6 +1097,17 @@ struct ChordVaultWidget : ModuleWidget {
 					int i = CVRange_Order[_i];
 					menu->addChild(createMenuItem(CVRange_LABELS[i], CHECKMARK(module->cvRange == i), [module,i]() { 
 						module->cvRange = (CVRange)i;
+					}));
+				}
+			}
+		));
+
+		menu->addChild(createSubmenuItem("CV Record Order", CVOrder_LABELS[module->cvOrder],
+			[=](Menu* menu) {
+				menu->addChild(createMenuLabel("Controls the order in which CV values in a single chord are recorded."));
+				for(int i = 0; i < CVOrder_MAX; i++){
+					menu->addChild(createMenuItem(CVOrder_LABELS[i], CHECKMARK(module->cvOrder == i), [module,i]() { 
+						module->cvOrder = (CVOrder)i;
 					}));
 				}
 			}
