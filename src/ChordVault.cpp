@@ -36,16 +36,24 @@ static std::string PLAY_MODE_NAMES [PlayMode_MAX] = {
 	"Glide",
 };
 
-#define CVRange_MAX 2
+#define CVRange_MAX 3
 
 enum CVRange {
 	ZeroTo5V,
 	WhiteKeys,
+	ZeroTo10V,
 };
 
 static std::string CVRange_LABELS [CVRange_MAX] = {
 	"0 to 5V",
 	"White Keys",
+	"0 to 10V",
+};
+
+static int CVRange_Order[CVRange_MAX] = {
+	0, //0-5
+	2, //0-10
+	1, //White Keys
 };
 
 
@@ -734,6 +742,8 @@ struct ChordVault : Module {
 			default:
 			case ZeroTo5V:
 				return inputs[STEP_CV_INPUT].getVoltage() / 5.01f * maxStep;
+			case ZeroTo10V:
+				return inputs[STEP_CV_INPUT].getVoltage() / 10.01f * maxStep;
 			case WhiteKeys:
 				//White Number 0, 2, 4, 5, 7, 9, 11
 				int raw_note = std::round(inputs[STEP_CV_INPUT].getVoltage() * 12.f);
@@ -1059,7 +1069,8 @@ struct ChordVaultWidget : ModuleWidget {
 
 		menu->addChild(createSubmenuItem("Step CV Range", CVRange_LABELS[module->cvRange],
 			[=](Menu* menu) {
-				for(int i = 0; i < CVRange_MAX; i++){
+				for(int _i = 0; _i < CVRange_MAX; _i++){
+					int i = CVRange_Order[_i];
 					menu->addChild(createMenuItem(CVRange_LABELS[i], CHECKMARK(module->cvRange == i), [module,i]() { 
 						module->cvRange = (CVRange)i;
 					}));
