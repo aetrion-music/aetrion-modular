@@ -52,7 +52,7 @@ Note that the default polyphony is set to 5 (can be changed in right click menu)
 1. **Forward ( > )** - Plays steps in regular order (low to high numbers).
 2. **Backward ( < )** - Plays steps in reverse order (high to low numbers).
 3. **Random ( RND )** - Randomized step selection (without step repeats).
-4. **CV Control ( CV )** - Special mode that let's you select steps via CV. Needs a **CV input signal** patched to the jack and uses unipolar 0-5V range to select from steps *with respect to the seq length*. 
+4. **CV Control ( CV )** - Special mode that let's you select steps via CV. Needs a **CV input signal** patched to the jack (0-5V, changeable in right click menu) to select from steps *with respect to the seq length*. 
 **CV Control clock behavior:** Sample & Hold, so you may retrigger a current step with an additional clock pulse, while step CV input is unchanged. Changes in step CV input are sent to output "together" with the clock. 
 ### Special Modes (pink led)
 Press and hold the SEQ button for 1 second to access these modes. You can also access them using the right click menu which also shows their full names.
@@ -72,12 +72,16 @@ Press and hold the SEQ button for 1 second to access these modes. You can also a
 
 **Dynamic Poly Channels** - changes the number of poly channels of the gate output so that each step will reflekt the number of notes played into it. this is an experimental feature that may cause clicks and pops depending on the attached voice/adsr setup.
 
-**Skip partial clock** - Changes clock behavior. if set to "yes" any change in step or gate out is "delayed" until the next full clock. relevant if you want to reset the sequence "locked to tempo".
+**Skip partial clock** - Changes clock behavior. if set to "yes" any change in step or gate out is "delayed" until the next full clock. relevant if you want to reset the sequence "locked to tempo". Try this option if you have trouble syncing ChordVault with other sequencers (see paragraph "Notes on syncing" below).
 
-**Step CV Range** - changes the range for the CV input of the step knob. Default is 0-5V. For "easy" sequencing of steps via a note sequencer module, use
-the option "white keys only". Note C corresponds to Step 1, D to step 2 and so on.
+**Step CV Range** - changes the range for the CV input of the step knob. Options are: 0-5V (default), 0-10V, or "white keys only" for "easy" sequencing of steps via a note sequencer module (Note C corresponds to Step 1, D to step 2 and so on).
 
-**Note Pitch Transpose** - transposes all notes of all steps via up/down semitone selection
+**CV Record Order** - changes how channels for incoming polyphonic CV are "sorted" for each chord
+  * Sorted: In this mode the CVs for low gates are removed and the CVs are sorted from lowest to highest note
+  * Condensed: In this mode the CVs for low gates are removed, CVs are not sorted
+  * Pristine: In this mode the all CVs are left exactly as received (channels kept as they were during recording of the step)
+
+**Transpose SEQ** - transposes all notes of all steps via up/down semitone selection. Notice: This is a simple implementation, meant to quickly change the key if you have a harmonic progression. Once transposed, sequence can not be turned back to its original pitch, unless you remember your transpose selection and reverse it by manually transposing again. For more flexible transpose operations use a module like [BOGAUDIO STACK](https://library.vcvrack.com/Bogaudio/Bogaudio-Stack) after the V/OCT output.
 
 
 ### Bypass
@@ -88,6 +92,16 @@ When ChordVault is bypassed all outputs stay at 0V.
 
 1. Use SEQ Mode "CV Control" to change the steps. Use the CLOCK input with a different (gate) sequencer to have the chords play rhythmically (see example 2).
 2. Use the module as a monophonic sequencer ie. by patching in random quantized voltage or CV from a shift register. Try out the different sequencer modes.
+
+### Notes on clock usage, reset and syncing ChordVault with other sequencers
+ChordVault implements the [timing standard" proposed by VCV](https://vcvrack.com/manual/VoltageStandards#Timing) so there is a reset lockout for 1ms. To make sure ChordVault syncs properly with other sequencers please check if they follow the same standard and also check for settings on chordvault (skip partial clock option should be activated) and the clock module you are using. 
+
+For the most popular clock module [CLOCKED](https://library.vcvrack.com/ImpromptuModular/Clocked), the following settings seem to work best.
+
+* turn OFF “outputs high on reset when not running”
+* turn ON “on stop” > “do internal reset” & “send reset pulse”
+* click run once to reset everything (clock is now stopped)
+* click it again and everything should start in sync.
 
 
 ## Patch Examples
