@@ -2,7 +2,7 @@
 ## Chordvault
 ### v2.1
 
-* Changed: implementation of the "rack timing standard" for reset
+* Changed: Implementation of the [rack timing standard](https://vcvrack.com/manual/VoltageStandards#Timing) for reset
 * New: Multiple options for how channels for incoming polyphonic CV are "sorted"
   * Sorted: In this mode the CVs for low gates are removed and the CVs are sorted from lowest to highest note
   * Condensed: In this mode the CVs for low gates are removed, CVs are not sorted
