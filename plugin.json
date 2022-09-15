@@ -11,7 +11,7 @@
   "manualUrl": "https://github.com/aetrion-music/aetrion-modular",
   "sourceUrl": "https://github.com/aetrion-music/aetrion-modular",
   "donateUrl": "",
-  "changelogUrl": "",
+  "changelogUrl": "https://github.com/aetrion-music/aetrion-modular/blob/main/Changelog.md",
   "modules": [
     {
       "slug": "ChordVault",
